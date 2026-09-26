@@ -153,7 +153,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         </div>
       </header>
 
-      <div className={`${styles.bottom} ${styles.bottomFade}`}>
+      <div className={styles.bottom}>
         {nearbyCount > 0 && onOpenNearby && (
           <button onClick={onOpenNearby} className={`${styles.pill} ${styles.wrap}`}>
             this spot has already been scanned, view it now

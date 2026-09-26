@@ -85,7 +85,7 @@ Photographs have gently rounded corners. The CTA is a dark pill with a matching 
 
 The camera, review, and explore screens float the hero's paper and ink over full-bleed camera and panorama imagery (`src/components/chrome.module.css`). The imagery is the surface; chrome is opaque paper pills and sheets with a soft offset shadow for lift, never glass or blur. There is no grain, vignette, serif, or copper: the past-ness comes from the generated image itself.
 
-- **Bare text and logo.** Top bars (wordmark, counters, titles, back/close icons) and plain messages (capture guidance, hints, the site note) carry no bubble: ink text sits on a soft paper fade (top bar; the capture screen's bottom too) with a faint paper glow behind the letters for busy imagery.
+- **Bare text and logo.** Top bars (wordmark, counters, titles, back/close icons) and plain messages (capture guidance, hints, the site note) carry no bubble and no fade: paper-white text and icons with a soft ink shadow, directly on the imagery.
 - **Pills are for controls only.** 40px tall, pill radius, paper fill, hairline border, 14px lowercase copy. A pill carrying a sentence wraps (22px radius) instead of overflowing.
 - **One ink action per screen.** The hero CTA: ink fill, 52px, 15px, arrow icon ("see it in 1920", "capture"). Toggled-on controls (motion) also turn ink.
 - **Sheets.** Paper, 28px radius, rising 14px with an exponential ease-out on entry. The review sheet holds notices, a paper-sunk segmented year control (selected segment ink), and the CTA. Tidbits open in the same sheet over a 32% ink scrim; the title is 26px/500 in normal case, with kind and source in a caption line below the text, never as an eyebrow above it.
