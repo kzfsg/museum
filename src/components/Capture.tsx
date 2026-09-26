@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { ArrowUpRight, Camera, Check, History, X } from 'lucide-react'
+import styles from './chrome.module.css'
 import { angleDiff, circularMean, normalizeDeg, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
@@ -48,8 +50,8 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         stream = s
         if (videoRef.current) videoRef.current.srcObject = s
       })
-      .catch(() => setCameraError('Camera access was denied or is unavailable.'))
-    if (!navigator.mediaDevices) setCameraError('Camera needs a secure (https) page.')
+      .catch(() => setCameraError('camera access was denied or is unavailable. allow it in your browser settings and try again.'))
+    if (!navigator.mediaDevices) setCameraError('the camera needs a secure (https) page.')
     return () => {
       cancelled = true
       stream?.getTracks().forEach((t) => t.stop())
@@ -121,7 +123,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   }, [complete])
 
   return (
-    <main className="fixed inset-0 bg-black">
+    <main className={styles.screen}>
       <video
         ref={videoRef}
         autoPlay
@@ -130,45 +132,49 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         onPlaying={() => {
           cameraReadyAtRef.current ??= performance.now()
         }}
-        className="absolute inset-0 h-full w-full object-cover"
+        className={styles.camera}
       />
 
-      <header className="absolute top-0 inset-x-0 z-10 flex items-start justify-between p-4 hud-backdrop">
-        <button onClick={onCancel} className="text-sm text-muted">Cancel</button>
-        <div className="text-right text-sm">
-          <div>{count} / {SLOT_COUNT}</div>
-          <div className="text-xs text-muted">
-            {heading === null ? 'No motion sensor' : `Facing ${Math.round(heading)}°${reading?.absolute ? '' : ' (no compass)'}`}
-          </div>
+      <header className={styles.top}>
+        <button onClick={onCancel} className={`${styles.pill} ${styles.round}`} aria-label="cancel scan">
+          <X size={18} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        <span className={`${styles.pill} ${styles.wordmark}`}>
+          time machine
+          <History size={16} strokeWidth={1.75} aria-hidden="true" />
+        </span>
+        <div className={`${styles.pill} ${styles.meta}`}>
+          <span className={styles.metaMain}>
+            {count} / {SLOT_COUNT}
+          </span>
+          <span className={styles.metaSub}>
+            {heading === null ? 'no motion sensor' : `facing ${Math.round(heading)}°${reading?.absolute ? '' : ' · no compass'}`}
+          </span>
         </div>
       </header>
 
-      <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-4 p-6">
+      <div className={styles.bottom}>
         {nearbyCount > 0 && onOpenNearby && (
-          <button onClick={onOpenNearby} className="rounded-md bg-surface/90 px-4 py-2 text-sm">
-            This spot has already been scanned · <span className="underline">View it now</span>
+          <button onClick={onOpenNearby} className={`${styles.pill} ${styles.wrap}`}>
+            this spot has already been scanned, view it now
+            <ArrowUpRight size={17} strokeWidth={1.75} aria-hidden="true" />
           </button>
         )}
-        {cameraError && <p className="text-sm text-muted text-center">{cameraError}</p>}
-        <p
-          className={`rounded-md px-3 py-1.5 text-sm text-center transition-colors ${warning ? 'bg-red-700/90 font-medium' : 'bg-black/40'}`}
-          aria-live="polite"
-        >
+        {cameraError && <p className={styles.hint}>{cameraError}</p>}
+        <p className={`${styles.pill} ${styles.wrap} ${styles.guide} ${warning ? styles.guideWarn : ''}`} aria-live="polite">
           {guidance.message}
         </p>
-        <HeadingRing filled={filled} heading={reading?.rawHeading ?? null} warning={warning} />
-        <div className="flex gap-2">
+        <HeadingRing filled={filled} heading={reading?.rawHeading ?? null} />
+        <div className={styles.row}>
           {heading === null && (
-            <button onClick={manualCapture} className="rounded-md bg-primary px-4 py-2 text-sm">
-              Capture
+            <button onClick={manualCapture} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
+              capture
+              <Camera size={18} strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
-          <button
-            onClick={finish}
-            disabled={count === 0}
-            className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm disabled:opacity-40"
-          >
-            Done
+          <button onClick={finish} disabled={count === 0} className={`${styles.pill} ${heading === null ? '' : styles.primary}`}>
+            done
+            <Check size={18} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -176,10 +182,10 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   )
 }
 
-function HeadingRing({ filled, heading, warning }: { filled: Set<number>; heading: number | null; warning: boolean }) {
-  const r = 40
+function HeadingRing({ filled, heading }: { filled: Set<number>; heading: number | null }) {
+  const r = 38
   return (
-    <svg viewBox="-50 -50 100 100" className="h-28 w-28">
+    <svg viewBox="-50 -50 100 100" className={styles.ring} role="img" aria-label={`${filled.size} of ${SLOT_COUNT} photos captured`}>
       {[...Array(SLOT_COUNT).keys()].map((slot) => {
         const a = ((slot * SLOT_STEP - 90) * Math.PI) / 180
         return (
@@ -187,8 +193,8 @@ function HeadingRing({ filled, heading, warning }: { filled: Set<number>; headin
             key={slot}
             cx={r * Math.cos(a)}
             cy={r * Math.sin(a)}
-            r={5}
-            className={filled.has(slot) ? 'fill-primary' : 'fill-white/25'}
+            r={5.5}
+            className={`${styles.ringDot} ${filled.has(slot) ? styles.ringDotOn : ''}`}
           />
         )
       })}
@@ -196,10 +202,10 @@ function HeadingRing({ filled, heading, warning }: { filled: Set<number>; headin
         <line
           x1={0}
           y1={0}
-          x2={30 * Math.cos(((heading - 90) * Math.PI) / 180)}
-          y2={30 * Math.sin(((heading - 90) * Math.PI) / 180)}
-          className={warning ? 'stroke-red-500' : 'stroke-white'}
-          strokeWidth={2}
+          x2={24 * Math.cos(((heading - 90) * Math.PI) / 180)}
+          y2={24 * Math.sin(((heading - 90) * Math.PI) / 180)}
+          className={styles.ringHand}
+          strokeWidth={2.5}
           strokeLinecap="round"
         />
       )}

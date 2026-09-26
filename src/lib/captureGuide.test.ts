@@ -21,8 +21,8 @@ describe('guide', () => {
     expect(guide({ ...base, speed: 45 }).status).toBe('turning')
   })
   it('says which way to tilt', () => {
-    expect(guide({ ...base, pitch: 25 }).message).toMatch(/Tilt down/)
-    expect(guide({ ...base, pitch: -25 }).message).toMatch(/Tilt up/)
+    expect(guide({ ...base, pitch: 25 }).message).toMatch(/tilt down/)
+    expect(guide({ ...base, pitch: -25 }).message).toMatch(/tilt up/)
   })
   it('asks to fill gaps after a full turn', () => {
     expect(guide({ ...base, turnedDeg: 400 }).status).toBe('fill-gaps')

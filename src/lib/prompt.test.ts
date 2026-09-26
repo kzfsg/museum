@@ -70,7 +70,7 @@ describe('buildSitePrompt', () => {
 describe('siteNote', () => {
   const building = { name: null, openedYear: 1999, yearSource: 'wikidata' as const, distanceM: 0 }
   it('explains site mode in the requested wording', () => {
-    expect(siteNote(1920, building)).toBe("This building opened in 1999. Here's the site in 1920.")
+    expect(siteNote(1920, building)).toBe("this building opened in 1999. here's the site in 1920.")
   })
   it('is null when the building already existed or is unknown', () => {
     expect(siteNote(1999, building)).toBeNull()

@@ -45,12 +45,12 @@ export function canCapture(input: Pick<GuideInput, 'speed' | 'pitch'>): boolean 
 }
 
 export function guide(input: GuideInput): { status: GuideStatus; message: string } {
-  if (!input.hasSensor) return { status: 'no-sensor', message: 'No motion sensor. Tap Capture, turning a little between taps.' }
-  if (input.filled >= input.total) return { status: 'done', message: 'Got it!' }
-  if (input.speed > SLOW_DOWN_SPEED) return { status: 'too-fast', message: 'Slow down — turn more slowly' }
+  if (!input.hasSensor) return { status: 'no-sensor', message: 'no motion sensor. tap capture, turning a little between taps' }
+  if (input.filled >= input.total) return { status: 'done', message: 'got it' }
+  if (input.speed > SLOW_DOWN_SPEED) return { status: 'too-fast', message: 'slow down, turn more slowly' }
   if (Math.abs(input.pitch) > MAX_TILT_DEG) {
-    return { status: 'tilted', message: input.pitch > 0 ? 'Tilt down — hold your phone level' : 'Tilt up — hold your phone level' }
+    return { status: 'tilted', message: input.pitch > 0 ? 'tilt down, hold your phone level' : 'tilt up, hold your phone level' }
   }
-  if (input.turnedDeg >= 360) return { status: 'fill-gaps', message: 'Almost there — turn back to fill the empty dots' }
-  return { status: 'turning', message: 'Hold your phone upright and turn slowly to your right' }
+  if (input.turnedDeg >= 360) return { status: 'fill-gaps', message: 'almost there, turn back to fill the empty dots' }
+  return { status: 'turning', message: 'hold your phone upright and turn slowly to your right' }
 }

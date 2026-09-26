@@ -174,7 +174,8 @@ export function PanoramaViewer({
         friction: 0.15,
         yaw: yawRef.current,
         pitch: band.vOffset,
-        backgroundColor: [30, 24, 18],
+        // Paper, matching the app chrome, for any area the image doesn't cover.
+        backgroundColor: [250 / 255, 250 / 255, 247 / 255],
         hotSpots: hotspotsRef.current.map((h) => ({
           pitch: h.pitch,
           yaw: h.yaw,
@@ -247,13 +248,13 @@ export function PanoramaViewer({
   }, [motion, loaded])
 
   return (
-    <div className="absolute inset-0 film-grain vignette">
-      <div ref={containerRef} className="w-full h-full" style={{ backgroundColor: '#1e1812' }} />
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="w-full h-full bg-[#fafaf7]" />
       {!loaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background">
+        <div className="absolute inset-0 flex items-center justify-center bg-[#fafaf7] text-[#20211e]">
           <div className="text-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-[10px] tracking-[0.15em] text-muted/60 uppercase mt-4">Loading panorama</p>
+            <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-[#20211e] border-t-transparent motion-reduce:animate-none" />
+            <p className="mt-4 text-sm tracking-[-0.01em] text-[#696b63]">loading panorama…</p>
           </div>
         </div>
       )}

@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ArrowUpRight, CircleAlert } from 'lucide-react'
+import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import { canvasToBlob, frameVfov, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
 import { fitHfov } from '@/src/components/PanoramaViewer'
@@ -103,13 +105,13 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
       }
       const res = await fetch('/api/generate', { method: 'POST', body: form })
       if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: `Request failed (${res.status})` }))
+        const { error } = await res.json().catch(() => ({ error: `the request failed (${res.status}). try again in a moment.` }))
         throw new Error(error)
       }
       const data = (await res.json()) as GenerateResponse
       onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov, note: data.note })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generation failed')
+      setError(e instanceof Error ? e.message : 'generation failed. check your connection and try again.')
       setBusy(false)
     }
   }
@@ -122,63 +124,73 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
   }
 
   return (
-    <main className="fixed inset-0">
+    <main className={styles.screen}>
       {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} hfov={viewHfov} yaw={startYaw} motion={autoMotion} />}
 
-      <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between p-4 hud-backdrop">
-        <button onClick={onRetake} disabled={busy} className="text-sm text-muted">← Retake</button>
-        <div className="text-right text-xs text-muted">
-          <div>
-            Your scan · {frames.length} photos · lens {Math.round(lens.hfov)}°{lens.measured ? '' : ' (est.)'}
-          </div>
-          <div>{location ? 'Location found · will be saved' : 'No location · history and saving off'}</div>
+      <header className={styles.top}>
+        <button onClick={onRetake} disabled={busy} className={styles.pill}>
+          <ArrowLeft size={17} strokeWidth={1.75} aria-hidden="true" />
+          retake
+        </button>
+        <div className={`${styles.pill} ${styles.meta}`}>
+          <span className={styles.metaMain}>
+            {frames.length} photos · lens {Math.round(lens.hfov)}°{lens.measured ? '' : ' (est.)'}
+          </span>
+          <span className={styles.metaSub}>{location ? 'location found, will be saved' : 'no location, history and saving off'}</span>
         </div>
       </header>
 
-      <footer className="absolute bottom-0 inset-x-0 z-20 space-y-3 p-4">
-        {error && (
-          <div className="rounded-md bg-surface/90 p-3 text-sm space-y-2">
-            <p>{error}</p>
-            {preview && (
-              <button onClick={viewRaw} className="text-muted underline">
-                View the raw scan instead
-              </button>
-            )}
-          </div>
-        )}
-        {missing > 0 && !busy && (
-          <div className="flex items-center justify-between gap-3 rounded-md bg-red-800/90 p-3 text-sm">
-            <p>
-              {missing} of {SCAN_SLOTS} photos missing — the AI will have to invent those parts.
-            </p>
-            <button onClick={onRetake} className="shrink-0 rounded-md bg-foreground px-3 py-1.5 font-medium text-background">
-              Retake
-            </button>
-          </div>
-        )}
-        {busy ? (
-          <p className="text-center text-[10px] tracking-[0.15em] uppercase text-muted">
-            Developing {year}… this can take a minute
-          </p>
-        ) : (
-          <>
-            <div className="flex justify-center gap-2">
-              {YEARS.map((y) => (
-                <button
-                  key={y}
-                  onClick={() => setYear(y)}
-                  className={`rounded-md border px-3 py-1.5 text-sm ${y === year ? 'border-primary bg-primary/30' : 'border-border bg-surface/80'}`}
-                >
-                  {y}
-                </button>
-              ))}
+      <div className={styles.bottom}>
+        <section className={styles.sheet} aria-live="polite">
+          {error && (
+            <div className={styles.notice} role="alert">
+              <CircleAlert size={18} strokeWidth={1.75} className={styles.noticeIcon} aria-hidden="true" />
+              <p>
+                {error}{' '}
+                {preview && (
+                  <button onClick={viewRaw} className={styles.linkButton}>
+                    view the raw scan instead
+                  </button>
+                )}
+              </p>
             </div>
-            <button onClick={generate} className="w-full rounded-md bg-primary px-4 py-3 font-medium">
-              See it in {year}
-            </button>
-          </>
-        )}
-      </footer>
+          )}
+          {missing > 0 && !busy && (
+            <div className={styles.notice}>
+              <CircleAlert size={18} strokeWidth={1.75} className={styles.noticeIcon} aria-hidden="true" />
+              <p>
+                {missing} of {SCAN_SLOTS} photos missing, so the ai will have to invent those parts.
+              </p>
+              <button onClick={onRetake} className={styles.pill}>
+                retake
+              </button>
+            </div>
+          )}
+          {busy ? (
+            <div className={styles.developing}>
+              <p>developing {year}…</p>
+              <small>this can take a minute</small>
+              <div className={styles.progress} aria-hidden="true" />
+            </div>
+          ) : (
+            <>
+              <div className={styles.segmented} role="group" aria-label="year">
+                {YEARS.map((y) => (
+                  <button key={y} onClick={() => setYear(y)} aria-pressed={y === year} className={styles.segment}>
+                    {y}
+                  </button>
+                ))}
+              </div>
+              <div className={styles.sheetBlock}>
+                <button onClick={generate} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
+                  see it in {year}
+                  <ArrowUpRight size={19} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
     </main>
   )
 }

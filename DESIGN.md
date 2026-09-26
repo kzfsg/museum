@@ -10,6 +10,7 @@ colors:
   hover-ink: "#41443b"
   focus: "#42644c"
   selection: "#d6dfcf"
+  paper-sunk: "#efefe8"
 typography:
   display:
     fontFamily: "Hanken Grotesk, sans-serif"
@@ -48,7 +49,7 @@ components:
 
 ## Overview
 
-This is a code-derived record of the current **Persuade** landing hero, not an approved visual comp or a redesign of the application. The reference is overlay-site's light composition and outward image ribbon. The camera, review, and exploration screens retain their existing dark styling.
+This is a code-derived record of the current **Persuade** landing hero, not an approved visual comp or a redesign of the application. The reference is overlay-site's light composition and outward image ribbon. The camera, review, and exploration screens carry the same world as paper chrome over full-bleed imagery (see App chrome).
 
 The hero uses warm paper, restrained dark type, generous open space, and mirrored photographs. Its distinguishing feature is matched past/present NYC imagery, with a single action leading to camera capture. Descriptive language here records the implementation; no separate creative north star has been approved.
 
@@ -80,11 +81,24 @@ Photographs have gently rounded corners. The CTA is a dark pill with a matching 
 
 **Time ribbon.** `ImageArc.tsx` is copied from overlay-site’s `components/image-arc.tsx`. Its geometry, shader, camera, 2.8-second emergence, center birth fade and 26-second traversal constant are retained. Integration selects matching past/current halves of generated NYC diptychs, using the same index and lap for opposite cards. Frame count adapts to the viewport. `PHOTO_SPACING` in ImageArc controls density independently of the original path: 1 is original density; 1.8 spreads cards farther apart after they leave the center. The original birth cadence and dense center are retained to prevent empty gaps. The refresh-reset directive remounts the WebGL scene on saved edits. Reduced motion keeps a static arrangement; hidden/offscreen views suspend animation. The accessible description identifies the imagery as AI-generated reconstructions.
 
+## App chrome
+
+The camera, review, and explore screens float the hero's paper and ink over full-bleed camera and panorama imagery (`src/components/chrome.module.css`). The imagery is the surface; chrome is opaque paper pills and sheets with a soft offset shadow for lift, never glass or blur. There is no grain, vignette, serif, or copper: the past-ness comes from the generated image itself.
+
+- **Pills.** 40px tall, pill radius, paper fill, hairline border, 14px lowercase copy. Icon-only pills are 40px circles. A pill carrying a sentence wraps (22px radius) instead of overflowing.
+- **One ink action per screen.** The hero CTA: ink fill, 52px, 15px, arrow icon ("see it in 1920", "capture"). Toggled-on controls (motion) also turn ink.
+- **Sheets.** Paper, 28px radius, rising 14px with an exponential ease-out on entry. The review sheet holds notices, a paper-sunk segmented year control (selected segment ink), and the CTA. Tidbits open in the same sheet over a 32% ink scrim; the title is 26px/500 in normal case, with kind and source in a caption line below the text, never as an eyebrow above it.
+- **Capture guidance.** A paper pill that inverts to ink for warnings (slow down, tilt); progress is twelve dots on a paper disc, ink when captured, with an ink hand.
+- **Notes and hints.** Paper cards (20px radius) with a supporting-tone icon; hints are 13px supporting text on paper.
+- **Markers.** Pannellum hotspots are 30px paper dots with an ink center; tooltips are paper pills.
+- **Type steps** in the app: 12 (meta), 13 (captions, hints), 14 (pills, body in notices), 15 (CTA, guidance, note), 16 (titles, list items), 26 (sheet title).
+- **Voice.** Lowercase for app-authored copy; proper names (places, tidbit titles, sources) keep their capitalization.
+
 ## Do's and Don'ts
 
 - Do preserve matching landmarks, viewpoints, and phase across opposite sides.
 - Do keep the hero's one CTA connected to camera capture.
 - Do retain keyboard focus and the reduced-motion arrangement.
 - Don't present generated reconstructions as archival photographs.
-- Don't apply this light hero palette to the existing app flow without a separate decision.
+- Do keep app chrome opaque paper over imagery; the imagery stays edge to edge.
 - Don't treat this implementation record as an approved comp.

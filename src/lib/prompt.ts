@@ -80,5 +80,5 @@ export function buildSitePrompt(year: number, history: History | null, building:
 // chosen year. Returns the note shown to the user, or null in follow mode.
 export function siteNote(year: number, building: Building | null): string | null {
   if (!building || building.openedYear <= year) return null
-  return `This building opened in ${building.openedYear}. Here's the site in ${year}.`
+  return `this building opened in ${building.openedYear}. here's the site in ${year}.`
 }

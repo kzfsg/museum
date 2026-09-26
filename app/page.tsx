@@ -17,8 +17,8 @@ type AppMode = 'splash' | 'capture' | 'review' | 'pick' | 'explore'
 function placeFromScan(scan: ScanResult): Place {
   return {
     id: `scan-${Date.now()}`,
-    name: 'Your block',
-    neighborhood: scan.generated ? 'Reimagined from your scan' : 'Raw scan',
+    name: 'your block',
+    neighborhood: scan.generated ? 'reimagined from your scan' : 'raw scan',
     lat: 0,
     lng: 0,
     year: scan.year,
@@ -35,8 +35,8 @@ function placeFromScan(scan: ScanResult): Place {
 function placeFromSaved(scan: ScanWithUrl): Place {
   return {
     id: `scan-${scan.id}`,
-    name: 'Saved scan',
-    neighborhood: `Scanned ${new Date(scan.createdAt).toLocaleDateString()}`,
+    name: 'saved scan',
+    neighborhood: `scanned ${new Date(scan.createdAt).toLocaleDateString()}`,
     lat: scan.lat,
     lng: scan.lng,
     year: scan.year,

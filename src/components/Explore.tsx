@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { ArrowLeft, BookOpen, ChevronRight, Compass, History, SlidersHorizontal, X } from 'lucide-react'
+import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
 import { requestMotionPermission } from '@/src/lib/motion'
@@ -43,12 +45,12 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
       setMotionError(null)
       setMotion(true)
     } else {
-      setMotionError('Motion isn’t available here. Drag to look around.')
+      setMotionError('motion isn’t available here. drag to look around.')
     }
   }
 
   return (
-    <main className="fixed inset-0">
+    <main className={styles.screen}>
       <PanoramaViewer
         src={place.panorama}
         vaov={place.vaov}
@@ -62,70 +64,62 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
           setMotionMode(mode)
           if (mode === 'unavailable') {
             setMotion(false)
-            if (userAskedForMotion) setMotionError('No motion sensor here. Drag to look around.')
+            if (userAskedForMotion) setMotionError('no motion sensor here. drag to look around.')
           }
         }}
         yaw={place.startYaw}
       />
 
-      <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between gap-4 p-4 hud-backdrop">
-        <button onClick={onBack} className="text-sm text-muted">← Back</button>
-        <div className="text-right">
-          <div className="font-display text-lg">{place.name}</div>
-          <div className="text-xs text-muted">
+      <header className={styles.top}>
+        <button onClick={onBack} className={`${styles.pill} ${styles.round}`} aria-label="back">
+          <ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+        <div className={`${styles.pill} ${styles.meta}`}>
+          <span className={styles.title}>{place.name}</span>
+          <span className={styles.metaSub}>
             {place.neighborhood} · {place.year}
             {place.placeholder && ' · placeholder'}
-          </div>
+          </span>
         </div>
       </header>
 
       {place.note && !noteDismissed && (
-        <button
-          onClick={() => setNoteDismissed(true)}
-          className="absolute inset-x-4 top-20 z-20 rounded-md bg-surface/90 px-4 py-3 text-left text-sm"
-        >
-          {place.note}
-          <span className="ml-2 text-xs text-muted">Tap to hide</span>
-        </button>
+        <div className={styles.noteCard} role="status">
+          <History size={18} strokeWidth={1.75} className={styles.noticeIcon} aria-hidden="true" />
+          <p>{place.note}</p>
+          <button onClick={() => setNoteDismissed(true)} className={`${styles.pill} ${styles.round} ${styles.noteClose}`} aria-label="hide note">
+            <X size={15} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
       )}
 
-      <footer className="absolute bottom-0 inset-x-0 z-20 p-4 space-y-2">
-        {motionError && <p className="text-xs text-muted text-center">{motionError}</p>}
+      <footer className={styles.bottom}>
+        {motionError && <p className={styles.hint}>{motionError}</p>}
         {motion && motionMode === 'relative' && (
-          <p className="text-xs text-muted text-center">No compass on this device, so the view follows your turns but isn’t tied to north.</p>
+          <p className={styles.hint}>no compass on this device, so the view follows your turns but isn’t tied to north</p>
         )}
         {motion && motionMode === 'compass' && alignOpen && (
-          <label className="flex items-center gap-3 rounded-md bg-surface/80 px-3 py-2 text-xs text-muted">
-            <span className="shrink-0">Line it up</span>
-            <input
-              type="range"
-              min={-180}
-              max={180}
-              value={yawOffset}
-              onChange={(e) => setYawOffset(Number(e.target.value))}
-              className="w-full accent-[var(--primary)]"
-            />
-            <span className="w-10 shrink-0 text-right tabular-nums">{yawOffset}°</span>
+          <label className={styles.align}>
+            <span>line it up</span>
+            <input type="range" min={-180} max={180} value={yawOffset} onChange={(e) => setYawOffset(Number(e.target.value))} />
+            <output>{yawOffset}°</output>
           </label>
         )}
-        <div className="flex gap-2 justify-center">
-          <button onClick={toggleMotion} className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm">
-            {!motion ? 'Use motion' : motionMode === 'compass' ? 'Compass on' : 'Motion on'}
+        <div className={styles.row}>
+          <button onClick={toggleMotion} aria-pressed={motion} className={`${styles.pill} ${motion ? styles.ink : ''}`}>
+            <Compass size={17} strokeWidth={1.75} aria-hidden="true" />
+            {!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
           </button>
           {motion && motionMode === 'compass' && (
-            <button
-              onClick={() => setAlignOpen((open) => !open)}
-              className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
-            >
-              {alignOpen ? 'Done aligning' : 'Align'}
+            <button onClick={() => setAlignOpen((open) => !open)} aria-pressed={alignOpen} className={styles.pill}>
+              <SlidersHorizontal size={17} strokeWidth={1.75} aria-hidden="true" />
+              {alignOpen ? 'done' : 'align'}
             </button>
           )}
           {place.tidbits.length > 0 && (
-            <button
-              onClick={() => setListOpen(true)}
-              className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
-            >
-              Tidbits ({place.tidbits.length})
+            <button onClick={() => setListOpen(true)} className={styles.pill}>
+              <BookOpen size={17} strokeWidth={1.75} aria-hidden="true" />
+              tidbits · {place.tidbits.length}
             </button>
           )}
         </div>
@@ -133,51 +127,64 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
 
       {(openTidbit || listOpen) && (
         <div
-          className="absolute inset-0 z-30 flex items-end bg-black/40"
+          className={styles.scrim}
           onClick={() => {
             setOpenTidbitId(null)
             setListOpen(false)
           }}
         >
-          <section
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-h-[70dvh] overflow-y-auto rounded-t-xl bg-surface p-5"
-          >
+          <section onClick={(e) => e.stopPropagation()} className={styles.sheet} role="dialog" aria-modal="true" aria-label={openTidbit ? openTidbit.title : 'tidbits'}>
             {openTidbit ? (
-              <article className="space-y-2">
-                <div className="text-[10px] uppercase tracking-[0.15em] text-accent">{openTidbit.kind}</div>
-                <h3 className="font-display text-xl">{openTidbit.title}</h3>
-                <p className="text-sm text-foreground/90">{openTidbit.body}</p>
-                {openTidbit.source && (
-                  <p className="text-xs text-muted">
-                    Source:{' '}
-                    {openTidbit.source.startsWith('https://') ? (
-                      <a href={openTidbit.source} target="_blank" rel="noreferrer" className="underline">
-                        {new URL(openTidbit.source).hostname}
-                      </a>
-                    ) : (
-                      openTidbit.source
-                    )}
-                  </p>
-                )}
-                <button onClick={() => setOpenTidbitId(null)} className="text-sm text-muted pt-2">
-                  {listOpen ? '← All tidbits' : 'Close'}
-                </button>
+              <article className={styles.stack}>
+                <div className={styles.sheetHead}>
+                  <h3 className={styles.tidbitTitle}>{openTidbit.title}</h3>
+                  <button
+                    onClick={() => setOpenTidbitId(null)}
+                    className={`${styles.pill} ${styles.round}`}
+                    aria-label={listOpen ? 'back to all tidbits' : 'close'}
+                  >
+                    {listOpen ? <ArrowLeft size={17} strokeWidth={1.75} aria-hidden="true" /> : <X size={17} strokeWidth={1.75} aria-hidden="true" />}
+                  </button>
+                </div>
+                <p className={styles.tidbitBody}>{openTidbit.body}</p>
+                <p className={styles.tidbitMeta}>
+                  <span>{openTidbit.kind === 'local' ? 'local' : 'history'}</span>
+                  {openTidbit.source && (
+                    <span>
+                      source:{' '}
+                      {openTidbit.source.startsWith('https://') ? (
+                        <a href={openTidbit.source} target="_blank" rel="noreferrer">
+                          {new URL(openTidbit.source).hostname}
+                        </a>
+                      ) : (
+                        openTidbit.source.toLowerCase()
+                      )}
+                    </span>
+                  )}
+                </p>
               </article>
             ) : (
-              <ul className="space-y-2">
-                {place.tidbits.map((t) => (
-                  <li key={t.id}>
-                    <button
-                      onClick={() => setOpenTidbitId(t.id)}
-                      className="w-full text-left rounded-md border border-border px-4 py-3"
-                    >
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-accent">{t.kind}</div>
-                      <div className="font-medium">{t.title}</div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <div className={styles.sheetHead}>
+                  <h3 className={styles.tidbitTitle}>around you</h3>
+                  <button onClick={() => setListOpen(false)} className={`${styles.pill} ${styles.round}`} aria-label="close">
+                    <X size={17} strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                </div>
+                <ul className={styles.list}>
+                  {place.tidbits.map((t) => (
+                    <li key={t.id}>
+                      <button onClick={() => setOpenTidbitId(t.id)} className={styles.listItem}>
+                        <span>
+                          {t.title}
+                          <small>{t.kind === 'local' ? 'local' : 'history'}</small>
+                        </span>
+                        <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
         </div>
