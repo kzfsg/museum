@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowUpRight, History } from 'lucide-react'
-import { TimeRibbon } from './TimeRibbon'
+import { ImageArc } from './ImageArc'
 import styles from './Splash.module.css'
 
 interface SplashProps {
@@ -16,7 +16,8 @@ export function Splash({ onScan }: SplashProps) {
         <h1>travel back in time,</h1>
         <p>transform your new york<br />into a living museum</p>
       </div>
-      <TimeRibbon />
+      <ImageArc stageId="hero-stage" />
+      <div id="hero-stage" className={styles.ribbon} role="img" aria-label="AI-generated reconstructions of NYC landmarks: matching past views on the left and present views on the right." />
       <div className={styles.action}>
         <button onClick={onScan} className={styles.button}>
           travel back in time <ArrowUpRight size={19} aria-hidden="true" />

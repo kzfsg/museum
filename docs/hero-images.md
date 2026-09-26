@@ -1,6 +1,6 @@
 # Hero image provenance
 
-Generated with the built-in GPT image generation tool. Historical scenes are illustrative reconstructions, not archival photographs. Each JPEG contains a past/current diptych; CSS selects the left or right half without distorting the portrait aspect ratio. Opposite cards use the same source, phase, scale and mirrored transform. The images have close compositional alignment, not guaranteed pixel registration.
+Generated with the built-in GPT image generation tool. Historical scenes are illustrative reconstructions, not archival photographs. Each JPEG contains a past/current diptych; The original overlay-site ImageArc shader selects the left or right half and applies its square cover crop. Opposite cards use the same source, phase, scale and mirrored transform. The images have close compositional alignment, not guaranteed pixel registration.
 
 ## Prompts
 

@@ -8,16 +8,10 @@
       "PRODUCT.md",
       "src/components/Splash.tsx",
       "src/components/Splash.module.css",
-      "src/components/TimeRibbon.tsx",
+      "src/components/ImageArc.tsx",
       "app/layout.tsx"
     ],
-    "shadows": [
-      {
-        "name": "photo",
-        "value": "0 7px 16px #20211e20",
-        "purpose": "Soft separation between overlapping ribbon photographs."
-      }
-    ],
+    "shadows": [],
     "motion": [
       {
         "name": "button",
@@ -25,9 +19,9 @@
         "purpose": "Background and transform transitions; hover translates upward 2px and active returns to rest."
       },
       {
-        "name": "ribbon-cycle",
-        "value": "32000ms",
-        "purpose": "Shared timeline for nine outward mirrored pairs. Reduced motion is static; hidden documents suspend animation."
+        "name": "ribbon-traversal",
+        "value": "26s traversal constant; 2.8s emergence",
+        "purpose": "Original overlay-site ImageArc geometry and animation, paired past/current diptych textures."
       }
     ],
     "breakpoints": [

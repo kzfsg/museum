@@ -1,5 +1,6 @@
 .hero {
   --hero-ink: #20211e;
+  --u: min(1vw, 16px);
   position: relative;
   isolation: isolate;
   display: flex;
@@ -43,34 +44,11 @@
   position: relative;
   flex: 0 0 auto;
   width: 100%;
-  height: clamp(230px, 25vw, 340px);
-  margin: 20px 0 8px;
+  height: calc(var(--u) * 12);
+  margin: calc(var(--u) * 3) 0;
 }
-.photo {
-  position: absolute;
-  top: 48%;
-  left: 50%;
-  width: 210px;
-  height: 280px;
-  background-size: 200% 100%;
-  background-repeat: no-repeat;
-  border-radius: 7px;
-  box-shadow: 0 7px 16px #20211e20;
-  backface-visibility: hidden;
-  will-change: transform;
-}
-.eraLabels {
-  position: absolute;
-  z-index: 101;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 64px;
-  color: #6b6d65;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-}
+@media (max-width: 1023px) { .hero { --u: 1.5vw; } }
+@media (max-width: 639px) { .hero { --u: 2.2vw; } }
 .action { position: relative; z-index: 2; margin-top: 15px; }
 .button {
   display: inline-flex;
@@ -109,12 +87,9 @@
   .wordmark { top: 26px; font-size: 18px; }
   .intro h1 { font-size: clamp(32px, 8.9vw, 48px); }
   .intro p { font-size: clamp(24px, 6.5vw, 32px); margin-top: 14px; }
-  .ribbon { height: 240px; margin-top: 22px; }
-  .photo { width: 162px; height: 216px; }
   .subtitle { margin-top: 30px; max-width: 340px; font-size: 13px; }
   .subtitle span + span { margin-top: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .button { transition: none; }
-  .photo { will-change: auto; }
 }
