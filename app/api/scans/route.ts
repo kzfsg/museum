@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 const NEARBY_RADIUS_M = 60
 const MAX_RESULTS = 20
 
-export type ScanWithUrl = SavedScan & { imageUrl: string }
+export type ScanWithUrl = SavedScan & { imageUrl: string; presentUrl?: string }
 
 export async function GET(req: Request) {
   if (!scanStoreEnabled()) return Response.json({ scans: [] })
@@ -27,6 +27,6 @@ export async function GET(req: Request) {
   const scans = await Promise.all(entries.slice(0, MAX_RESULTS).map((e) => readScan(e.pathname)))
   const result: ScanWithUrl[] = scans
     .filter((s): s is SavedScan => s !== null)
-    .map((s) => ({ ...s, imageUrl: scanImageUrl(s.imagePath) }))
+    .map((s) => ({ ...s, imageUrl: scanImageUrl(s.imagePath), presentUrl: s.presentPath && scanImageUrl(s.presentPath) }))
   return Response.json({ scans: result })
 }

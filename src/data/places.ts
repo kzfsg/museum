@@ -31,6 +31,8 @@ export interface Place {
   viewHfov?: number
   // Shown over the view, e.g. why a site is shown instead of the scan.
   note?: string | null
+  // The same view today (same projection as `panorama`), for the split view.
+  present?: string
   tidbits: Tidbit[]
 }
 

@@ -145,7 +145,7 @@ export async function POST(req: Request) {
   let saved: SavedScan | null = null
   if (hasLocation && scanStoreEnabled()) {
     try {
-      saved = await saveScan(new Blob([bytes], { type: 'image/jpeg' }), { lat, lng, year, startYaw, tidbits, note })
+      saved = await saveScan(new Blob([bytes], { type: 'image/jpeg' }), { lat, lng, year, startYaw, tidbits, note }, image)
     } catch (e) {
       // The user still gets their image; it just won't be reusable.
       console.error('Failed to save scan', e)

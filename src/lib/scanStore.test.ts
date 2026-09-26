@@ -9,6 +9,14 @@ describe('scan pathnames', () => {
     expect(parseScanPathname(path)).toEqual({ ...meta, pathname: path })
   })
 
+  it('puts the present-day panorama next to the generated image', () => {
+    const meta = { id: '1727370000000-abc123', lat: 40.80751, lng: -73.96262, year: 1920 }
+    const path = scanPathname(meta, 'now.jpg')
+    expect(path).toBe('scans/40.80751_-73.96262_1920_1727370000000-abc123.now.jpg')
+    expect(parseScanPathname(path)).toBeNull()
+    expect(isScanImagePath(path)).toBe(true)
+  })
+
   it('ignores anything that is not a scan sidecar', () => {
     expect(parseScanPathname('scans/40.80751_-73.96262_1920_x.jpg')).toBeNull()
     expect(parseScanPathname('other/40.80751_-73.96262_1920_x.json')).toBeNull()

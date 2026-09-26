@@ -462,3 +462,33 @@ button.primary:hover { transform: translateY(-2px); }
   button.pill, .guide, .ringDot { transition: none; }
   .scrubInput::-webkit-slider-thumb { transition: none; }
 }
+
+/* Split "then / now" view: the past over the present, steered together. */
+.split {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--paper);
+}
+.pane {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Labels sit either side of the seam so each names the pane it touches. */
+.paneLabel {
+  position: absolute;
+  left: 16px;
+  z-index: 10;
+  color: var(--on-image);
+  text-shadow: var(--glow);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+}
+.paneLabelAbove { bottom: 10px; }
+.paneLabelBelow { top: 10px; }

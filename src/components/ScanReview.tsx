@@ -38,6 +38,8 @@ export interface ScanResult {
   note?: string | null
   // Id in the scan store, when the scan was saved.
   savedId?: string
+  // The present-day panorama sent to the model, for the split view.
+  presentUrl?: string
 }
 
 export interface ScanLocation {
@@ -115,7 +117,17 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
         throw new Error(error)
       }
       const data = (await res.json()) as GenerateResponse
-      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov, note: data.note, savedId: data.saved?.id })
+      onResult({
+        panoramaUrl: data.imageUrl,
+        year,
+        generated: true,
+        startYaw,
+        tidbits: data.tidbits,
+        viewHfov,
+        note: data.note,
+        savedId: data.saved?.id,
+        presentUrl: URL.createObjectURL(squashed),
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'generation failed. check your connection and try again.')
       setBusy(false)

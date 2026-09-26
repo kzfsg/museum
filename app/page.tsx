@@ -29,6 +29,7 @@ function placeFromScan(scan: ScanResult, location: ScanLocation | null): Place {
     vOffset: scan.vOffset,
     viewHfov: scan.viewHfov,
     note: scan.note,
+    present: scan.presentUrl,
   }
 }
 
@@ -44,6 +45,7 @@ function placeFromSaved(scan: ScanWithUrl): Place {
     startYaw: scan.startYaw,
     tidbits: scan.tidbits,
     note: scan.note,
+    present: scan.presentUrl,
   }
 }
 

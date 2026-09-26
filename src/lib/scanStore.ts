@@ -14,6 +14,9 @@ export interface SavedScan {
   year: number
   startYaw: number
   imagePath: string
+  // The present-day panorama the image was made from (same projection), for
+  // the split "then / now" view. Missing on scans saved before it was kept.
+  presentPath?: string
   tidbits: Tidbit[]
   // Shown when the scan's building didn't exist yet in `year` (site mode).
   note?: string | null
@@ -37,7 +40,8 @@ export function scanStoreEnabled(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
 }
 
-export function scanPathname(meta: { id: string; lat: number; lng: number; year: number }, ext: 'json' | 'jpg'): string {
+// `now.jpg` is the present-day panorama stored next to the generated `jpg`.
+export function scanPathname(meta: { id: string; lat: number; lng: number; year: number }, ext: 'json' | 'jpg' | 'now.jpg'): string {
   return `${PREFIX}${meta.lat.toFixed(5)}_${meta.lng.toFixed(5)}_${meta.year}_${meta.id}.${ext}`
 }
 
@@ -67,12 +71,17 @@ export function isScanImagePath(path: string): boolean {
 
 export async function saveScan(
   image: Blob,
-  meta: Omit<SavedScan, 'id' | 'imagePath' | 'createdAt'>
+  meta: Omit<SavedScan, 'id' | 'imagePath' | 'presentPath' | 'createdAt'>,
+  present?: Blob
 ): Promise<SavedScan> {
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const imagePath = scanPathname({ id, ...meta }, 'jpg')
-  await put(imagePath, image, { access: 'private', contentType: 'image/jpeg' })
-  const scan: SavedScan = { id, imagePath, createdAt: new Date().toISOString(), ...meta }
+  const presentPath = present ? scanPathname({ id, ...meta }, 'now.jpg') : undefined
+  await Promise.all([
+    put(imagePath, image, { access: 'private', contentType: 'image/jpeg' }),
+    presentPath && present && put(presentPath, present, { access: 'private', contentType: 'image/jpeg' }),
+  ])
+  const scan: SavedScan = { id, imagePath, presentPath, createdAt: new Date().toISOString(), ...meta }
   await put(scanPathname(scan, 'json'), JSON.stringify(scan), { access: 'private', contentType: 'application/json' })
   return scan
 }
