@@ -34,7 +34,9 @@ export const BUILDING_RADIUS_M = 120
 const MIN_BUILDING_DISTANCE_M = 12
 const MAX_BUILDING_TIDBITS = 2
 const FETCH_TIMEOUT_MS = 6000
-const USER_AGENT = 'TimeMachineDivHacks/0.1 (hackathon prototype)'
+// Wikimedia's API policy requires contact info in the User-Agent and rejects
+// generic agents, especially from cloud IPs like Vercel's.
+const USER_AGENT = 'TimeMachineDivHacks/0.1 (https://museum-six-lemon.vercel.app; DivHacks hackathon prototype)'
 
 interface WikiPage {
   title: string
@@ -163,6 +165,8 @@ async function fetchWikipedia(lat: number, lng: number): Promise<NearbyArticle[]
     // abbreviations like "St." and cuts tidbits mid-name.
     exchars: '320',
     exlimit: '20',
+    // `coordinates` pages at 10 by default, silently dropping the rest.
+    colimit: 'max',
     format: 'json',
     formatversion: '2',
   })
@@ -170,7 +174,7 @@ async function fetchWikipedia(lat: number, lng: number): Promise<NearbyArticle[]
     headers: { 'User-Agent': USER_AGENT },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   })
-  if (!res.ok) throw new Error(`Wikipedia ${res.status}`)
+  if (!res.ok) throw new Error(`Wikipedia ${res.status}: ${(await res.text()).slice(0, 200)}`)
   return parseWikipedia(await res.json(), lat, lng)
 }
 
@@ -192,6 +196,9 @@ async function fetchPluto(lat: number, lng: number): Promise<NearbyBuilding[]> {
 // Either source failing (or timing out) just leaves that part empty.
 export async function fetchHistory(lat: number, lng: number): Promise<History> {
   const [articles, buildings] = await Promise.allSettled([fetchWikipedia(lat, lng), fetchPluto(lat, lng)])
+  // Failures are tolerated but logged, so they show up in the function logs.
+  if (articles.status === 'rejected') console.error('History: Wikipedia lookup failed', articles.reason)
+  if (buildings.status === 'rejected') console.error('History: PLUTO lookup failed', buildings.reason)
   return {
     articles: articles.status === 'fulfilled' ? articles.value : [],
     buildings: buildings.status === 'fulfilled' ? buildings.value : [],
