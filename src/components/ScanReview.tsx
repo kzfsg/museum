@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { canvasToBlob, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
+import { canvasToBlob, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
 import { SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { Tidbit } from '@/src/data/places'
 import type { GenerateResponse } from '@/app/api/generate/route'
@@ -51,10 +51,12 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
   const [error, setError] = useState<string | null>(null)
   const startYaw = frames[0]?.heading ?? 0
   const missing = SCAN_SLOTS - frames.length
+  // Measured once per scan from how neighbouring photos overlap.
+  const lens = useMemo(() => scanHfov(frames), [frames])
 
   useEffect(() => {
     let url: string | null = null
-    const { canvas, vaov, vOffset } = stitchBand(frames, PREVIEW_WIDTH)
+    const { canvas, vaov, vOffset } = stitchBand(frames, lens.hfov, PREVIEW_WIDTH)
     canvasToBlob(canvas).then((blob) => {
       url = URL.createObjectURL(blob)
       setPreview({ url, vaov, vOffset })
@@ -62,13 +64,13 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
     return () => {
       if (url) URL.revokeObjectURL(url)
     }
-  }, [frames])
+  }, [frames, lens])
 
   async function generate() {
     setBusy(true)
     setError(null)
     try {
-      const squashed = await canvasToBlob(stitchEquirect(frames, MODEL_SIZE.width, MODEL_SIZE.height))
+      const squashed = await canvasToBlob(stitchEquirect(frames, lens.hfov, MODEL_SIZE.width, MODEL_SIZE.height))
       const form = new FormData()
       form.set('image', squashed, 'scan.jpg')
       form.set('year', String(year))
@@ -92,7 +94,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
 
   // A fresh URL, because the preview URL is revoked when this screen unmounts.
   async function viewRaw() {
-    const { canvas, vaov, vOffset } = stitchBand(frames, PREVIEW_WIDTH)
+    const { canvas, vaov, vOffset } = stitchBand(frames, lens.hfov, PREVIEW_WIDTH)
     const blob = await canvasToBlob(canvas)
     onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [], vaov, vOffset })
   }
@@ -104,7 +106,9 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
       <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between p-4 hud-backdrop">
         <button onClick={onRetake} disabled={busy} className="text-sm text-muted">← Retake</button>
         <div className="text-right text-xs text-muted">
-          <div>Your scan · {frames.length} photos</div>
+          <div>
+            Your scan · {frames.length} photos · lens {Math.round(lens.hfov)}°{lens.measured ? '' : ' (est.)'}
+          </div>
           <div>{location ? 'Location found · will be saved' : 'No location · history and saving off'}</div>
         </div>
       </header>

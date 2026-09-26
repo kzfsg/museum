@@ -27,6 +27,8 @@ Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_R
   on-screen guidance live in `src/lib/captureGuide.ts`.
 - `src/lib/motion.ts` — `OrientationTracker` fuses fast gyro heading with the (laggy) iOS compass,
   which only corrects north once the phone has been still for a moment.
+- `src/lib/fov.ts` — measures the camera's FOV per scan by matching neighbouring frames (phones
+  deliver 4:3 or 16:9 streams, so it can't be assumed); falls back to an aspect-based guess.
 - `src/lib/stitch.ts` — pastes frames onto an equirectangular canvas by heading. North is the image
   center, so panorama yaw == compass heading everywhere (stitch, tidbits, viewer).
 - `app/api/generate/route.ts` — history lookup -> grounded prompt -> OpenAI image edit -> save.
