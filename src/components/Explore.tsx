@@ -1,0 +1,129 @@
+'use client'
+
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import type { Place } from '@/src/data/places'
+
+const PanoramaViewer = dynamic(
+  () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
+  { ssr: false }
+)
+
+// iOS only grants device orientation after a user gesture asks for it.
+async function requestMotionPermission(): Promise<boolean> {
+  const DOE = globalThis.DeviceOrientationEvent as unknown as
+    | { requestPermission?: () => Promise<'granted' | 'denied'> }
+    | undefined
+  if (!DOE) return false
+  if (typeof DOE.requestPermission !== 'function') return true
+  try {
+    return (await DOE.requestPermission()) === 'granted'
+  } catch {
+    return false
+  }
+}
+
+interface ExploreProps {
+  place: Place
+  onBack: () => void
+}
+
+export function Explore({ place, onBack }: ExploreProps) {
+  const [motion, setMotion] = useState(false)
+  const [motionError, setMotionError] = useState<string | null>(null)
+  const [openTidbitId, setOpenTidbitId] = useState<string | null>(null)
+  const [listOpen, setListOpen] = useState(false)
+
+  const openTidbit = place.tidbits.find((t) => t.id === openTidbitId)
+
+  async function toggleMotion() {
+    if (motion) {
+      setMotion(false)
+      return
+    }
+    if (await requestMotionPermission()) {
+      setMotionError(null)
+      setMotion(true)
+    } else {
+      setMotionError('Motion isn’t available here. Drag to look around.')
+    }
+  }
+
+  return (
+    <main className="fixed inset-0">
+      <PanoramaViewer
+        src={place.panorama}
+        hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
+        onHotspotClick={setOpenTidbitId}
+        motion={motion}
+      />
+
+      <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between gap-4 p-4 hud-backdrop">
+        <button onClick={onBack} className="text-sm text-muted">← Spots</button>
+        <div className="text-right">
+          <div className="font-display text-lg">{place.name}</div>
+          <div className="text-xs text-muted">
+            {place.neighborhood} · {place.year}
+            {place.placeholder && ' · placeholder'}
+          </div>
+        </div>
+      </header>
+
+      <footer className="absolute bottom-0 inset-x-0 z-20 p-4 space-y-2">
+        {motionError && <p className="text-xs text-muted text-center">{motionError}</p>}
+        <div className="flex gap-2 justify-center">
+          <button onClick={toggleMotion} className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm">
+            {motion ? 'Motion on' : 'Use motion'}
+          </button>
+          <button
+            onClick={() => setListOpen(true)}
+            className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
+          >
+            Tidbits ({place.tidbits.length})
+          </button>
+        </div>
+      </footer>
+
+      {(openTidbit || listOpen) && (
+        <div
+          className="absolute inset-0 z-30 flex items-end bg-black/40"
+          onClick={() => {
+            setOpenTidbitId(null)
+            setListOpen(false)
+          }}
+        >
+          <section
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-h-[70dvh] overflow-y-auto rounded-t-xl bg-surface p-5"
+          >
+            {openTidbit ? (
+              <article className="space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.15em] text-accent">{openTidbit.kind}</div>
+                <h3 className="font-display text-xl">{openTidbit.title}</h3>
+                <p className="text-sm text-foreground/90">{openTidbit.body}</p>
+                {openTidbit.source && <p className="text-xs text-muted">Source: {openTidbit.source}</p>}
+                <button onClick={() => setOpenTidbitId(null)} className="text-sm text-muted pt-2">
+                  {listOpen ? '← All tidbits' : 'Close'}
+                </button>
+              </article>
+            ) : (
+              <ul className="space-y-2">
+                {place.tidbits.map((t) => (
+                  <li key={t.id}>
+                    <button
+                      onClick={() => setOpenTidbitId(t.id)}
+                      className="w-full text-left rounded-md border border-border px-4 py-3"
+                    >
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-accent">{t.kind}</div>
+                      <div className="font-medium">{t.title}</div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
+    </main>
+  )
+}
