@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-26T17:49:05.915613+00:00",
+  "title": "Design System: Time Machine landing hero",
+  "extensions": {
+    "scope": "Current Persuade landing hero only; code-derived and not an approved comp. Existing dark application flow is outside this scope.",
+    "sources": [
+      "PRODUCT.md",
+      "src/components/Splash.tsx",
+      "src/components/Splash.module.css",
+      "src/components/TimeRibbon.tsx",
+      "app/layout.tsx"
+    ],
+    "shadows": [
+      {
+        "name": "photo",
+        "value": "0 7px 16px #20211e20",
+        "purpose": "Soft separation between overlapping ribbon photographs."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button",
+        "value": "180ms ease",
+        "purpose": "Background and transform transitions; hover translates upward 2px and active returns to rest."
+      },
+      {
+        "name": "ribbon-cycle",
+        "value": "32000ms",
+        "purpose": "Shared timeline for nine outward mirrored pairs. Reduced motion is static; hidden documents suspend animation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-max",
+        "value": "600px"
+      },
+      {
+        "name": "wide-min",
+        "value": "1500px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Camera CTA",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The landing hero's single primary action opens camera capture.",
+      "html": "<button class=\"ds-camera-cta\">travel back in time<svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10M7 17 17 7\"/></svg></button>",
+      "css": ".ds-camera-cta{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:52px;padding:0 24px;border:1px solid #20211e;border-radius:100px;background:#20211e;color:#fafaf7;font-family:var(--font-hanken,sans-serif);font-size:15px;cursor:pointer;transition:background 180ms ease,transform 180ms ease}.ds-camera-cta:hover{background:#41443b;transform:translateY(-2px)}.ds-camera-cta:active{transform:translateY(0)}.ds-camera-cta:focus-visible{outline:2px solid #42644c;outline-offset:5px}@media(prefers-reduced-motion:reduce){.ds-camera-cta{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "overview": "The hero uses warm paper, restrained dark type, generous open space, and mirrored photographs. Its distinguishing feature is matched past/present NYC imagery, with a single action leading to camera capture. Descriptive language here records the implementation; no separate creative north star has been approved.",
+    "dos": [
+      "Do preserve matching landmarks, viewpoints, and phase across opposite sides.",
+      "Do keep the hero's one CTA connected to camera capture.",
+      "Do retain keyboard focus and the reduced-motion arrangement."
+    ],
+    "donts": [
+      "Don't present generated reconstructions as archival photographs.",
+      "Don't apply this light hero palette to the existing app flow without a separate decision.",
+      "Don't treat this implementation record as an approved comp."
+    ]
+  }
+}
