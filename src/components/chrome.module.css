@@ -201,7 +201,7 @@ button.primary:hover { transform: translateY(-2px); }
 .ringDot { fill: #d9d9d0; transition: fill 240ms var(--ease); }
 .ringDotOn { fill: var(--ink); }
 .ringHand { stroke: var(--ink); }
-.row { display: flex; gap: 8px; }
+.row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 
 /* Year scrubber: a big year over a ticked 1600-2000 track. */
 .scrub { text-align: center; }
@@ -383,6 +383,8 @@ button.primary:hover { transform: translateY(-2px); }
   text-wrap: balance;
   text-shadow: var(--glow);
 }
+/* What the voice guide is saying, over the panorama. */
+.caption { max-width: 360px; font-size: 15px; }
 .align {
   display: flex;
   align-items: center;
