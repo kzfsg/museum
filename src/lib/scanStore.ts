@@ -29,8 +29,10 @@ export interface ScanIndexEntry {
 const PREFIX = 'scans/'
 const PATH_RE = /^scans\/(-?\d+\.\d+)_(-?\d+\.\d+)_(\d{4})_([\w-]+)\.json$/
 
+// A store connected in the Vercel dashboard provides either a read-write token
+// or (newer stores, OIDC) a store id; @vercel/blob handles both.
 export function scanStoreEnabled(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN)
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
 }
 
 export function scanPathname(meta: { id: string; lat: number; lng: number; year: number }, ext: 'json' | 'jpg'): string {

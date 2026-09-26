@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isScanImagePath, nearestEntries, parseScanPathname, scanPathname } from './scanStore'
+import { isScanImagePath, nearestEntries, parseScanPathname, scanPathname, scanStoreEnabled } from './scanStore'
 
 describe('scan pathnames', () => {
   it('round-trip location, year, and id (including negative longitudes)', () => {
@@ -30,5 +30,20 @@ describe('isScanImagePath', () => {
     expect(isScanImagePath('scans/40.1_-73.1_1920_x.json')).toBe(false)
     expect(isScanImagePath('scans/../secret.jpg')).toBe(false)
     expect(isScanImagePath('elsewhere/x.jpg')).toBe(false)
+  })
+})
+
+describe('scanStoreEnabled', () => {
+  it('accepts a read-write token or an OIDC store id', () => {
+    const saved = { ...process.env }
+    delete process.env.BLOB_READ_WRITE_TOKEN
+    delete process.env.BLOB_STORE_ID
+    expect(scanStoreEnabled()).toBe(false)
+    process.env.BLOB_STORE_ID = 'store_x'
+    expect(scanStoreEnabled()).toBe(true)
+    delete process.env.BLOB_STORE_ID
+    process.env.BLOB_READ_WRITE_TOKEN = 'tok'
+    expect(scanStoreEnabled()).toBe(true)
+    process.env = saved
   })
 })
