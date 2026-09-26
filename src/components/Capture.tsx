@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, Compass, History, Map as MapIcon, X } from 'lucide-react'
+import { Check, Compass, Map as MapIcon, X } from 'lucide-react'
+import { TimeMachineIcon } from './TimeMachineIcon'
 import styles from './chrome.module.css'
 import { angleDiff, circularMean, normalizeDeg, requestMotionPermission, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
@@ -169,7 +170,7 @@ export function Capture({ onDone, onCancel, here, onPickScan }: CaptureProps) {
         </button>
         <span className={styles.wordmark}>
           time machine
-          <History size={16} strokeWidth={1.75} aria-hidden="true" />
+          <TimeMachineIcon size={16} strokeWidth={1.75} />
         </span>
         <div className={styles.meta}>
           <span className={styles.metaMain}>

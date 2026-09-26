@@ -1,6 +1,7 @@
 'use client'
 
-import { ArrowUpRight, History } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
+import { TimeMachineIcon } from './TimeMachineIcon'
 import { ImageArc } from './ImageArc'
 import styles from './Splash.module.css'
 
@@ -11,7 +12,7 @@ interface SplashProps {
 export function Splash({ onScan }: SplashProps) {
   return (
     <main className={styles.hero}>
-      <div className={styles.wordmark}>time machine<History size={19} strokeWidth={1.5} aria-hidden="true" /></div>
+      <div className={styles.wordmark}>time machine<TimeMachineIcon size={19} strokeWidth={1.5} /></div>
       <div className={styles.intro}>
         <h1>travel back in time,</h1>
         <p>transform new york<br />into a living museum</p>
