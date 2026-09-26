@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { angleDiff, toYawRange, watchOrientation } from '@/src/lib/motion'
 import { CAMERA_HFOV_DEG } from '@/src/lib/stitch'
 
-interface PannellumViewer {
+export interface PannellumViewer {
   destroy: () => void
   on: (event: string, cb: () => void) => void
   getYaw: () => number
+  getPitch: () => number
+  getHfov: () => number
   setYaw: (yaw: number, animated?: number | false) => void
   setPitch: (pitch: number, animated?: number | false) => void
+  setHfov: (hfov: number, animated?: number | false) => void
 }
 
 declare global {
@@ -80,7 +83,11 @@ interface PanoramaViewerProps {
   onMotionMode?: (mode: MotionMode) => void
   // Initial view direction; for scans this equals the compass heading.
   yaw?: number
+  // Initial pitch; defaults to the band's center.
+  pitch?: number
   onLoad?: () => void
+  // The loaded viewer (null once it's gone), e.g. to link two views together.
+  onViewer?: (viewer: PannellumViewer | null) => void
 }
 
 export function PanoramaViewer({
@@ -94,13 +101,19 @@ export function PanoramaViewer({
   yawOffset = 0,
   onMotionMode,
   yaw = 0,
+  pitch,
   onLoad,
+  onViewer,
 }: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
   const [loaded, setLoaded] = useState(false)
   const onLoadRef = useRef(onLoad)
   onLoadRef.current = onLoad
+  const onViewerRef = useRef(onViewer)
+  onViewerRef.current = onViewer
+  const pitchRef = useRef(pitch)
+  pitchRef.current = pitch
   const onHotspotClickRef = useRef(onHotspotClick)
   onHotspotClickRef.current = onHotspotClick
   // Hotspots, yaw, and vaov are read once per panorama; they change with `src`.
@@ -173,7 +186,7 @@ export function PanoramaViewer({
         maxHfov,
         friction: 0.15,
         yaw: yawRef.current,
-        pitch: band.vOffset,
+        pitch: pitchRef.current ?? band.vOffset,
         // Paper, matching the app chrome, for any area the image doesn't cover.
         backgroundColor: [250 / 255, 250 / 255, 247 / 255],
         hotSpots: hotspotsRef.current.map((h) => ({
@@ -185,10 +198,12 @@ export function PanoramaViewer({
         })),
       })
 
-      viewerRef.current.on('load', () => {
+      const viewer = viewerRef.current
+      viewer.on('load', () => {
         if (!mounted) return
         setLoaded(true)
         onLoadRef.current?.()
+        onViewerRef.current?.(viewer)
       })
     }
 
@@ -197,6 +212,7 @@ export function PanoramaViewer({
     return () => {
       mounted = false
       if (viewerRef.current) {
+        onViewerRef.current?.(null)
         viewerRef.current.destroy()
         viewerRef.current = null
       }

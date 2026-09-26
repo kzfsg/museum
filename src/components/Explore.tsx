@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { ArrowLeft, BookOpen, ChevronRight, Compass, History, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ArrowLeft, BookOpen, ChevronRight, Compass, History, Rows2, SlidersHorizontal, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
 import { requestMotionPermission } from '@/src/lib/motion'
-import type { MotionMode } from '@/src/components/PanoramaViewer'
+import type { MotionMode, PannellumViewer } from '@/src/components/PanoramaViewer'
+import { readView, syncViews, type View } from '@/src/lib/viewSync'
 import { ScanMap } from '@/src/components/ScanMap'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 
@@ -35,6 +36,31 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
   const [yawOffset, setYawOffset] = useState(0)
   const [openTidbitId, setOpenTidbitId] = useState<string | null>(null)
   const [listOpen, setListOpen] = useState(false)
+  const [split, setSplit] = useState(false)
+  // Where the view pointed when the layout last changed, so switching keeps it.
+  const [resume, setResume] = useState<View | null>(null)
+  const thenViewer = useRef<PannellumViewer | null>(null)
+  const nowViewer = useRef<PannellumViewer | null>(null)
+  const splitShown = split && Boolean(place.present)
+
+  // Keep the two panes looking the same way. Only the top pane follows the
+  // phone; the bottom one copies it (and either can be dragged).
+  useEffect(() => {
+    if (!splitShown) return
+    let last: View | null = null
+    let frame = 0
+    const tick = () => {
+      if (thenViewer.current && nowViewer.current) last = syncViews(thenViewer.current, nowViewer.current, last)
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [splitShown])
+
+  function toggleSplit() {
+    if (thenViewer.current) setResume(readView(thenViewer.current))
+    setSplit((on) => !on)
+  }
 
   const openTidbit = place.tidbits.find((t) => t.id === openTidbitId)
 
@@ -53,26 +79,52 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
     }
   }
 
+  // The past, with hotspots and phone steering; full screen or the top pane.
+  const thenView = (
+    <PanoramaViewer
+      src={place.panorama}
+      vaov={place.vaov}
+      vOffset={place.vOffset}
+      hfov={resume?.hfov ?? place.viewHfov}
+      hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
+      onHotspotClick={setOpenTidbitId}
+      motion={motion}
+      yawOffset={yawOffset}
+      onMotionMode={(mode) => {
+        setMotionMode(mode)
+        if (mode === 'unavailable') {
+          setMotion(false)
+          if (userAskedForMotion) setMotionError('no motion sensor here. drag to look around.')
+        }
+      }}
+      yaw={resume?.yaw ?? place.startYaw}
+      pitch={resume?.pitch}
+      onViewer={(v) => (thenViewer.current = v)}
+    />
+  )
+
   return (
     <main className={styles.screen}>
-      <PanoramaViewer
-        src={place.panorama}
-        vaov={place.vaov}
-        vOffset={place.vOffset}
-        hfov={place.viewHfov}
-        hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
-        onHotspotClick={setOpenTidbitId}
-        motion={motion}
-        yawOffset={yawOffset}
-        onMotionMode={(mode) => {
-          setMotionMode(mode)
-          if (mode === 'unavailable') {
-            setMotion(false)
-            if (userAskedForMotion) setMotionError('no motion sensor here. drag to look around.')
-          }
-        }}
-        yaw={place.startYaw}
-      />
+      {splitShown ? (
+        <div className={styles.split}>
+          <div className={styles.pane}>
+            {thenView}
+            <span className={`${styles.paneLabel} ${styles.paneLabelAbove}`}>{place.year}</span>
+          </div>
+          <div className={styles.pane}>
+            <PanoramaViewer
+              src={place.present!}
+              hfov={resume?.hfov ?? place.viewHfov}
+              yaw={resume?.yaw ?? place.startYaw}
+              pitch={resume?.pitch}
+              onViewer={(v) => (nowViewer.current = v)}
+            />
+            <span className={`${styles.paneLabel} ${styles.paneLabelBelow}`}>today</span>
+          </div>
+        </div>
+      ) : (
+        thenView
+      )}
 
       <header className={styles.top}>
         <button onClick={onBack} className={styles.bare} aria-label="back">
@@ -120,6 +172,17 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
               {alignOpen ? 'done' : 'align'}
             </button>
           )}
+          {place.present && (
+            <button
+              onClick={toggleSplit}
+              aria-pressed={split}
+              aria-label={split ? 'show only the past' : 'compare with today'}
+              title={split ? 'show only the past' : 'compare with today'}
+              className={`${styles.pill} ${styles.round} ${split ? styles.ink : ''}`}
+            >
+              <Rows2 size={17} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          )}
           {place.tidbits.length > 0 && (
             <button onClick={() => setListOpen(true)} className={styles.pill}>
               <BookOpen size={17} strokeWidth={1.75} aria-hidden="true" />
@@ -129,8 +192,9 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
         </div>
       </footer>
 
-      {/* After the footer so it stacks above it; hidden while aligning so it doesn't cover the slider. */}
-      {!alignOpen && (
+      {/* After the footer so it stacks above it. Hidden while aligning (it would cover the
+          slider) and in split view (it would cover most of the "today" pane on a phone). */}
+      {!alignOpen && !splitShown && (
         <ScanMap
           currentScanId={place.id.startsWith('scan-') ? place.id.slice('scan-'.length) : undefined}
           center={place}
