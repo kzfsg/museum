@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { canvasToBlob, resizeBlob, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
+import { canvasToBlob, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
+import type { Tidbit } from '@/src/data/places'
+import type { GenerateResponse } from '@/app/api/generate/route'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
@@ -11,7 +13,8 @@ const PanoramaViewer = dynamic(
 
 const YEARS = [1900, 1920, 1940, 1970]
 // The image model only accepts 3:2, so the 2:1 panorama is squashed for the
-// request and stretched back afterwards.
+// request. The viewer is told the image spans 360x180 degrees, which stretches
+// it back, so the result is used as-is.
 const MODEL_SIZE = { width: 1536, height: 1024 }
 const PANO_SIZE = { width: 2048, height: 1024 }
 
@@ -20,15 +23,23 @@ export interface ScanResult {
   year: number
   generated: boolean
   startYaw: number
+  tidbits: Tidbit[]
+}
+
+export interface ScanLocation {
+  lat: number
+  lng: number
 }
 
 interface ScanReviewProps {
   frames: CapturedFrame[]
+  // Null when location was denied or unavailable; the scan then isn't saved.
+  location: ScanLocation | null
   onResult: (result: ScanResult) => void
   onRetake: () => void
 }
 
-export function ScanReview({ frames, onResult, onRetake }: ScanReviewProps) {
+export function ScanReview({ frames, location, onResult, onRetake }: ScanReviewProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [year, setYear] = useState(1920)
   const [busy, setBusy] = useState(false)
@@ -54,13 +65,18 @@ export function ScanReview({ frames, onResult, onRetake }: ScanReviewProps) {
       const form = new FormData()
       form.set('image', squashed, 'scan.jpg')
       form.set('year', String(year))
+      form.set('startYaw', String(startYaw))
+      if (location) {
+        form.set('lat', String(location.lat))
+        form.set('lng', String(location.lng))
+      }
       const res = await fetch('/api/generate', { method: 'POST', body: form })
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: `Request failed (${res.status})` }))
         throw new Error(error)
       }
-      const pano = await resizeBlob(await res.blob(), PANO_SIZE.width, PANO_SIZE.height)
-      onResult({ panoramaUrl: URL.createObjectURL(pano), year, generated: true, startYaw })
+      const data = (await res.json()) as GenerateResponse
+      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed')
       setBusy(false)
@@ -70,7 +86,7 @@ export function ScanReview({ frames, onResult, onRetake }: ScanReviewProps) {
   // A fresh URL, because the preview URL is revoked when this screen unmounts.
   async function viewRaw() {
     const blob = await canvasToBlob(stitchEquirect(frames, PANO_SIZE.width, PANO_SIZE.height))
-    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw })
+    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [] })
   }
 
   return (
@@ -79,7 +95,10 @@ export function ScanReview({ frames, onResult, onRetake }: ScanReviewProps) {
 
       <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between p-4 hud-backdrop">
         <button onClick={onRetake} disabled={busy} className="text-sm text-muted">← Retake</button>
-        <div className="text-right text-xs text-muted">Your scan · {frames.length} photos</div>
+        <div className="text-right text-xs text-muted">
+          <div>Your scan · {frames.length} photos</div>
+          <div>{location ? 'Location found · will be saved' : 'No location · history and saving off'}</div>
+        </div>
       </header>
 
       <footer className="absolute bottom-0 inset-x-0 z-20 space-y-3 p-4">

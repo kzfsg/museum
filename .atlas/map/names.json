@@ -16,92 +16,93 @@
 		"src/data": "Places Catalog",
 		"folder:src/data": "Places Catalog",
 		"app/api": "Generate API",
-		"folder:app/api": "Generate API"
+		"folder:app/api": "Generate API",
+		"app/api/generate app/api/scans app/api/scans/image": "Generate API"
 	},
 	"prose": {
 		"app": {
 			"name": "Main App",
 			"kind": "ui",
-			"summary": "An App Router surface that combines page and layout code into the site's entry point.\n\nDefines Home, RootLayout, metadata, viewport, and the mode switching actions openPlace, browse, and scan.\n\nRendered by Next.js on request and client navigation.\n\nConsumes the Explore UI, Place Data, and Geo Motion Library.",
-			"role": "Serves the main home experience."
+			"summary": "The top level application route layer for the site. It stitches together page rendering, metadata, and the entry points that start scans or open a place.\n\nImplements Home and RootLayout, plus the scan entry actions and page level metadata and viewport settings.\n\nServer and client rendered app routes.\n\nUses the UI toolkit, place data, and scan logic. The scan flow component set drives its interactive screens.",
+			"role": "Handles the home page and root layout."
 		},
 		"folder:app": {
 			"name": "Main App",
 			"kind": "ui",
-			"summary": "An App Router surface that combines page and layout code into the site's entry point.\n\nDefines Home, RootLayout, metadata, viewport, and the mode switching actions openPlace, browse, and scan.\n\nRendered by Next.js on request and client navigation.\n\nConsumes the Explore UI, Place Data, and Geo Motion Library.",
-			"role": "Serves the main home experience."
+			"summary": "The top level application route layer for the site. It stitches together page rendering, metadata, and the entry points that start scans or open a place.\n\nImplements Home and RootLayout, plus the scan entry actions and page level metadata and viewport settings.\n\nServer and client rendered app routes.\n\nUses the UI toolkit, place data, and scan logic. The scan flow component set drives its interactive screens.",
+			"role": "Handles the home page and root layout."
 		},
 		"components components/ui": {
 			"name": "UI Toolkit",
 			"kind": "library",
-			"summary": "A React design system of reusable components and providers for consistent UI.\n\nExports Button, Sidebar, ThemeProvider, toast primitives, and many form and navigation controls.\n\nPure component library used by client code.\n\nUsed by Behavior Hooks and the app shell.",
-			"role": "Provides shared interface primitives."
+			"summary": "A design system style component library plus provider code. It centralizes the buttons, dialogs, sidebar layout, toast plumbing, and other primitives used across the app.\n\nExports ThemeProvider, Button, Sidebar, toast, form, dialog, and many other primitives and helpers.\n\nPure component library with no runtime of its own.\n\nBuilds on the hooks and class utility modules. The app shell consumes it, and the hooks module depends on it.",
+			"role": "Handles reusable UI primitives and shared shell state."
 		},
 		"folder:components": {
 			"name": "UI Toolkit",
 			"kind": "library",
-			"summary": "A React design system of reusable components and providers for consistent UI.\n\nExports Button, Sidebar, ThemeProvider, toast primitives, and many form and navigation controls.\n\nPure component library used by client code.\n\nUsed by Behavior Hooks and the app shell.",
-			"role": "Provides shared interface primitives."
+			"summary": "A design system style component library plus provider code. It centralizes the buttons, dialogs, sidebar layout, toast plumbing, and other primitives used across the app.\n\nExports ThemeProvider, Button, Sidebar, toast, form, dialog, and many other primitives and helpers.\n\nPure component library with no runtime of its own.\n\nBuilds on the hooks and class utility modules. The app shell consumes it, and the hooks module depends on it.",
+			"role": "Handles reusable UI primitives and shared shell state."
 		},
 		"hooks": {
 			"name": "React Hooks",
 			"kind": "library",
-			"summary": "A hook library for browser specific state and notifications.\n\nImplements toast state, dispatch, and mobile breakpoint detection through useToast and useIsMobile.\n\nRuns in the browser when React components mount.\n\nBuilds on the UI Kit and supports its toast and mobile behavior.",
-			"role": "Provides reusable client hooks."
+			"summary": "A small browser side hooks package. It wraps mutable UI behavior behind React hooks so components can consume toast state and screen size without owning the plumbing.\n\nImplements the toast queue and reducer plus useToast, and the useIsMobile breakpoint listener.\n\nRuns in the browser as React hooks.\n\nBuilds on the UI toolkit. The toolkit uses these hooks for toast and responsive behavior.",
+			"role": "Handles toast state and mobile detection hooks."
 		},
 		"folder:hooks": {
 			"name": "React Hooks",
 			"kind": "library",
-			"summary": "A hook library for browser specific state and notifications.\n\nImplements toast state, dispatch, and mobile breakpoint detection through useToast and useIsMobile.\n\nRuns in the browser when React components mount.\n\nBuilds on the UI Kit and supports its toast and mobile behavior.",
-			"role": "Provides reusable client hooks."
+			"summary": "A small browser side hooks package. It wraps mutable UI behavior behind React hooks so components can consume toast state and screen size without owning the plumbing.\n\nImplements the toast queue and reducer plus useToast, and the useIsMobile breakpoint listener.\n\nRuns in the browser as React hooks.\n\nBuilds on the UI toolkit. The toolkit uses these hooks for toast and responsive behavior.",
+			"role": "Handles toast state and mobile detection hooks."
 		},
 		"lib": {
 			"name": "Shared Utils",
 			"kind": "library",
-			"summary": "A tiny shared helper module for composing CSS class names.\n\nExports cn from lib/utils.ts for UI components to merge classes safely.\n\nPure library with no runtime of its own.\n\nUsed by the UI Kit.",
-			"role": "Supplies class name helpers."
+			"summary": "A tiny shared utility module. It exists to combine class names in a predictable way for component code.\n\nExports cn from lib/utils.ts.\n\nPure library with no runtime of its own.\n\nUsed by the UI toolkit for styling.",
+			"role": "Handles CSS class name composition."
 		},
 		"folder:lib": {
 			"name": "Shared Utils",
 			"kind": "library",
-			"summary": "A tiny shared helper module for composing CSS class names.\n\nExports cn from lib/utils.ts for UI components to merge classes safely.\n\nPure library with no runtime of its own.\n\nUsed by the UI Kit.",
-			"role": "Supplies class name helpers."
+			"summary": "A tiny shared utility module. It exists to combine class names in a predictable way for component code.\n\nExports cn from lib/utils.ts.\n\nPure library with no runtime of its own.\n\nUsed by the UI toolkit for styling.",
+			"role": "Handles CSS class name composition."
 		},
 		"src/components": {
 			"name": "Panorama Viewer",
 			"kind": "ui",
-			"summary": "A set of interactive React feature components for choosing and viewing places.\n\nDefines Explore, PlacePicker, PanoramaViewer, Splash, and motion permission handling for the app experience.\n\nRuns in the browser as interactive client components.\n\nBuilds on Place Data and Geo Motion Library, and is used by the App Shell.",
-			"role": "Coordinates place browsing and panorama flow."
+			"summary": "A set of feature components for the interactive scanning experience. It covers the exploratory view, capture controls, panorama viewing, place picking, and reviewing generated scans.\n\nDefines Explore, Capture, ScanReview, PanoramaViewer, PlacePicker, Splash, and their feature specific constants and actions.\n\nClient components rendered in the browser.\n\nBuilds on place data and scan logic. The app shell renders these screens, and the scan API and data modules feed them.",
+			"role": "Handles exploration, capture, and scan review screens."
 		},
 		"folder:src/components": {
 			"name": "Panorama Viewer",
 			"kind": "ui",
-			"summary": "A set of interactive React feature components for choosing and viewing places.\n\nDefines Explore, PlacePicker, PanoramaViewer, Splash, and motion permission handling for the app experience.\n\nRuns in the browser as interactive client components.\n\nBuilds on Place Data and Geo Motion Library, and is used by the App Shell.",
-			"role": "Coordinates place browsing and panorama flow."
+			"summary": "A set of feature components for the interactive scanning experience. It covers the exploratory view, capture controls, panorama viewing, place picking, and reviewing generated scans.\n\nDefines Explore, Capture, ScanReview, PanoramaViewer, PlacePicker, Splash, and their feature specific constants and actions.\n\nClient components rendered in the browser.\n\nBuilds on place data and scan logic. The app shell renders these screens, and the scan API and data modules feed them.",
+			"role": "Handles exploration, capture, and scan review screens."
 		},
 		"src/lib": {
 			"name": "Game Formatting Utils",
 			"kind": "library",
-			"summary": "A utility module for geographic math, device motion, stitching, and formatting.\n\nImplements haversineKm, nearestPlace, getPosition, watchHeading, stitchEquirect, canvasToBlob, resizeBlob, and display formatters.\n\nPure library with browser and canvas helpers.\n\nBuilds on Place Data and feeds the App Shell and Explore UI.",
-			"role": "Computes motion and panorama helpers."
+			"summary": "A domain logic library. It keeps the app specific rules for paths, stored scans, geospatial calculations, history, motion, stitching, and prompt preparation.\n\nDefines scan storage helpers, distance and bearing math, nearby selection, history types, and scan image path utilities.\n\nPure library with no runtime of its own.\n\nBuilds on place data. The app shell, scan API, and capture flow all use it.",
+			"role": "Handles scan storage, geometry, and prompt helpers."
 		},
 		"folder:src/lib": {
 			"name": "Game Formatting Utils",
 			"kind": "library",
-			"summary": "A utility module for geographic math, device motion, stitching, and formatting.\n\nImplements haversineKm, nearestPlace, getPosition, watchHeading, stitchEquirect, canvasToBlob, resizeBlob, and display formatters.\n\nPure library with browser and canvas helpers.\n\nBuilds on Place Data and feeds the App Shell and Explore UI.",
-			"role": "Computes motion and panorama helpers."
+			"summary": "A domain logic library. It keeps the app specific rules for paths, stored scans, geospatial calculations, history, motion, stitching, and prompt preparation.\n\nDefines scan storage helpers, distance and bearing math, nearby selection, history types, and scan image path utilities.\n\nPure library with no runtime of its own.\n\nBuilds on place data. The app shell, scan API, and capture flow all use it.",
+			"role": "Handles scan storage, geometry, and prompt helpers."
 		},
 		"src/data": {
 			"name": "Places Catalog",
 			"kind": "datastore",
-			"summary": "A static data model for named places and their tidbits.\n\nExports Place, Tidbit, TidbitKind, and the places collection consumed throughout the app.\n\nBuild time data module.\n\nRead by Explore UI, Geo Motion Library, and App Shell.",
-			"role": "Stores the place catalog."
+			"summary": "A static content module. It models places and the small tidbits attached to them so the rest of the app can refer to them consistently.\n\nExports TidbitKind, Tidbit, Place, and the places collection.\n\nStatic data loaded at build or import time.\n\nUsed by the app shell, scan API, capture flow, and scan logic.",
+			"role": "Stores place records and tidbits."
 		},
 		"folder:src/data": {
 			"name": "Places Catalog",
 			"kind": "datastore",
-			"summary": "A static data model for named places and their tidbits.\n\nExports Place, Tidbit, TidbitKind, and the places collection consumed throughout the app.\n\nBuild time data module.\n\nRead by Explore UI, Geo Motion Library, and App Shell.",
-			"role": "Stores the place catalog."
+			"summary": "A static content module. It models places and the small tidbits attached to them so the rest of the app can refer to them consistently.\n\nExports TidbitKind, Tidbit, Place, and the places collection.\n\nStatic data loaded at build or import time.\n\nUsed by the app shell, scan API, capture flow, and scan logic.",
+			"role": "Stores place records and tidbits."
 		},
 		"app/api": {
 			"name": "Generate API",
@@ -112,8 +113,14 @@
 		"folder:app/api": {
 			"name": "Generate API",
 			"kind": "gateway",
-			"summary": "A server route that accepts POST requests and returns generated output.\n\nSets runtime limits, constrains years with MIN_YEAR and MAX_YEAR, and builds the prompt in route POST.\n\nServerless route executed per request.\n\nStands alone as the app's generation endpoint.",
-			"role": "Handles generation requests."
+			"summary": "The backend HTTP layer for scan related operations. It exposes route handlers that turn app requests into generated responses or stored scan lookups.\n\nImplements app/api/generate, app/api/scans, and app/api/scans/image with year, radius, and result limits.\n\nServerless route handlers per request.\n\nUses place data and scan logic. The app shell and capture flow depend on these endpoints.",
+			"role": "Handles scan generation and scan lookup requests."
+		},
+		"app/api/generate app/api/scans app/api/scans/image": {
+			"name": "Generate API",
+			"kind": "gateway",
+			"summary": "The backend HTTP layer for scan related operations. It exposes route handlers that turn app requests into generated responses or stored scan lookups.\n\nImplements app/api/generate, app/api/scans, and app/api/scans/image with year, radius, and result limits.\n\nServerless route handlers per request.\n\nUses place data and scan logic. The app shell and capture flow depend on these endpoints.",
+			"role": "Handles scan generation and scan lookup requests."
 		}
 	}
 }

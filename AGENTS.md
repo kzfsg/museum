@@ -12,19 +12,32 @@ The current UI is a bare testing scaffold and will be redesigned.
 ```bash
 pnpm dev     # Next.js dev server
 pnpm build
+pnpm test    # vitest unit tests (src/**/*.test.ts)
 ```
+
+Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_READ_WRITE_TOKEN`
+(private Vercel Blob store `museum-scans`). Without either, the app still runs with that feature off.
 
 ## Layout
 
-- `app/page.tsx` — state machine: `splash -> locating -> pick | explore`
-- `src/data/places.ts` — spots, panoramas, and tidbits (hotspot pitch/yaw). Entries with
-  `placeholder: true` reuse TimeWarp panoramas that are not the actual place.
-- `src/components/PanoramaViewer.tsx` — Pannellum (CDN) with hotspots and device-orientation `motion`
-- `src/components/Explore.tsx` — viewer HUD, motion toggle (handles iOS permission), tidbit sheet
-- `src/lib/geo.ts` — geolocation with a hard timeout, nearest-place lookup
+- `app/page.tsx` — state machine: `splash -> capture -> review -> explore`, plus `pick` (saved scans
+  and sample spots). Location is fetched in the background during capture.
+- `src/components/Capture.tsx` — camera + compass; auto-captures a frame every 30° (tap to capture
+  without a compass). Shows a banner when a saved scan exists nearby.
+- `src/lib/stitch.ts` — pastes frames onto an equirectangular canvas by heading. North is the image
+  center, so panorama yaw == compass heading everywhere (stitch, tidbits, viewer).
+- `app/api/generate/route.ts` — history lookup -> grounded prompt -> OpenAI image edit -> save.
+- `src/lib/history.ts` — Wikipedia geosearch + NYC PLUTO construction years; turns them into tidbits.
+- `src/lib/prompt.ts` — tells the model which buildings did/didn't exist yet, by image position.
+- `src/lib/scanStore.ts`, `app/api/scans/*` — scans saved as image + JSON sidecar in private Blob;
+  lat/lng/year are encoded in the pathname so nearby lookup is one `list()`. Images are served
+  through `/api/scans/image`.
+- `src/components/PanoramaViewer.tsx` — Pannellum (CDN). `motion` steers by compass with smoothing
+  (falls back to relative tracking), `yawOffset` is the manual "line it up" correction. `haov/vaov`
+  are explicit so the model's 3:2 output wraps the full sphere without resizing.
+- `src/data/places.ts` — sample spots; `placeholder: true` panoramas are not the actual place.
 - TypeScript errors are ignored by `next build`; run `pnpm exec tsc --noEmit` to check.
 
-<!-- intuition:olympus:start -->
 ## The component map (Olympus)
 
 This repo is indexed into a component map derived from the compiler, not from guesses.

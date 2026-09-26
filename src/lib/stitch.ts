@@ -43,15 +43,3 @@ export function canvasToBlob(canvas: HTMLCanvasElement, type = 'image/jpeg', qua
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not encode image'))), type, quality)
   })
 }
-
-// Resizes an image to exact dimensions (used to undo the 3:2 squash the image
-// model needs, restoring a 2:1 equirectangular panorama).
-export async function resizeBlob(blob: Blob, width: number, height: number): Promise<Blob> {
-  const bitmap = await createImageBitmap(blob)
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, width, height)
-  bitmap.close()
-  return canvasToBlob(canvas)
-}

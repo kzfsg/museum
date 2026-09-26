@@ -1,5 +1,11 @@
 // Turns a rough present-day panorama into the same place in a past year using
-// OpenAI's image edit endpoint. Returns the edited image as JPEG bytes.
+// OpenAI's image edit endpoint, grounded in what's known about the location.
+// Saves the result when the scan has a location and storage is configured.
+
+import { fetchHistory, historyTidbits, type History } from '@/src/lib/history'
+import { buildPrompt } from '@/src/lib/prompt'
+import { saveScan, scanImageUrl, scanStoreEnabled, type SavedScan } from '@/src/lib/scanStore'
+import type { Tidbit } from '@/src/data/places'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -7,15 +13,16 @@ export const maxDuration = 300
 const MIN_YEAR = 1600
 const MAX_YEAR = 2000
 
-function buildPrompt(year: number) {
-  return [
-    'This is a rough 360-degree equirectangular panorama of a street in New York City, photographed today.',
-    'It was stitched from phone photos, so it has seams, and the gray areas are missing sky and ground.',
-    `Recreate it as a realistic photograph of this exact spot in ${year}.`,
-    'Keep every street, building, and landmark in the same position and shape.',
-    `Replace modern vehicles, signage, storefronts, clothing, and street furniture with what would have been there in ${year}.`,
-    'Fill in the sky and ground naturally, remove the seams, and keep it a seamless equirectangular panorama whose left and right edges connect.',
-  ].join(' ')
+export interface GenerateResponse {
+  imageUrl: string
+  tidbits: Tidbit[]
+  saved: SavedScan | null
+}
+
+function optionalNumber(value: FormDataEntryValue | null): number | null {
+  if (value === null || value === '') return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
 }
 
 export async function POST(req: Request) {
@@ -27,6 +34,9 @@ export async function POST(req: Request) {
   const form = await req.formData()
   const image = form.get('image')
   const year = Number(form.get('year'))
+  const lat = optionalNumber(form.get('lat'))
+  const lng = optionalNumber(form.get('lng'))
+  const startYaw = optionalNumber(form.get('startYaw')) ?? 0
   if (!(image instanceof Blob)) {
     return Response.json({ error: 'Missing image.' }, { status: 400 })
   }
@@ -34,10 +44,13 @@ export async function POST(req: Request) {
     return Response.json({ error: `Year must be between ${MIN_YEAR} and ${MAX_YEAR}.` }, { status: 400 })
   }
 
+  const hasLocation = lat !== null && lng !== null
+  const history: History | null = hasLocation ? await fetchHistory(lat, lng) : null
+
   const body = new FormData()
   body.set('model', process.env.OPENAI_IMAGE_MODEL ?? 'gpt-image-1')
   body.set('image', image, 'scan.jpg')
-  body.set('prompt', buildPrompt(year))
+  body.set('prompt', buildPrompt(year, history))
   body.set('size', '1536x1024')
   body.set('output_format', 'jpeg')
 
@@ -56,5 +69,24 @@ export async function POST(req: Request) {
   if (!b64) {
     return Response.json({ error: 'Image API returned no image.' }, { status: 502 })
   }
-  return new Response(Buffer.from(b64, 'base64'), { headers: { 'Content-Type': 'image/jpeg' } })
+
+  const tidbits = history ? historyTidbits(history, year) : []
+  const bytes = Buffer.from(b64, 'base64')
+
+  let saved: SavedScan | null = null
+  if (hasLocation && scanStoreEnabled()) {
+    try {
+      saved = await saveScan(new Blob([bytes], { type: 'image/jpeg' }), { lat, lng, year, startYaw, tidbits })
+    } catch (e) {
+      // The user still gets their image; it just won't be reusable.
+      console.error('Failed to save scan', e)
+    }
+  }
+
+  const response: GenerateResponse = {
+    imageUrl: saved ? scanImageUrl(saved.imagePath) : `data:image/jpeg;base64,${b64}`,
+    tidbits,
+    saved,
+  }
+  return Response.json(response)
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { angleDiff, toYawRange, watchOrientation, type Orientation } from '@/src/lib/motion'
 
 interface PannellumViewer {
   destroy: () => void
@@ -8,7 +9,17 @@ interface PannellumViewer {
   startOrientation: () => void
   stopOrientation: () => void
   isOrientationSupported: () => boolean
+  setYaw: (yaw: number, animated?: number | false) => void
+  setPitch: (pitch: number, animated?: number | false) => void
 }
+
+export type MotionMode = 'compass' | 'relative'
+
+// Fraction of the remaining angle closed each frame; lower is smoother but laggier.
+const SMOOTHING = 0.15
+// If no compass reading arrives in this time, fall back to Pannellum's own
+// relative orientation tracking.
+const COMPASS_WAIT_MS = 1500
 
 declare global {
   interface Window {
@@ -29,14 +40,27 @@ interface PanoramaViewerProps {
   src: string
   hotspots?: PanoramaHotspot[]
   onHotspotClick?: (id: string) => void
-  // Pan the view by moving the phone (device orientation).
+  // Pan the view by moving the phone. Uses the compass so the panorama's yaw
+  // matches real-world heading, falling back to relative tracking.
   motion?: boolean
+  // Manual correction (degrees) added to the compass heading.
+  yawOffset?: number
+  onMotionMode?: (mode: MotionMode) => void
   // Initial view direction; for scans this equals the compass heading.
   yaw?: number
   onLoad?: () => void
 }
 
-export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = false, yaw = 0, onLoad }: PanoramaViewerProps) {
+export function PanoramaViewer({
+  src,
+  hotspots = [],
+  onHotspotClick,
+  motion = false,
+  yawOffset = 0,
+  onMotionMode,
+  yaw = 0,
+  onLoad,
+}: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -49,6 +73,10 @@ export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = fa
   hotspotsRef.current = hotspots
   const yawRef = useRef(yaw)
   yawRef.current = yaw
+  const yawOffsetRef = useRef(yawOffset)
+  yawOffsetRef.current = yawOffset
+  const onMotionModeRef = useRef(onMotionMode)
+  onMotionModeRef.current = onMotionMode
 
   useEffect(() => {
     let mounted = true
@@ -78,6 +106,9 @@ export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = fa
       viewerRef.current = window.pannellum.viewer(containerRef.current, {
         type: 'equirectangular',
         panorama: src,
+        // Explicit so any image aspect (e.g. the model's 3:2) wraps the full sphere.
+        haov: 360,
+        vaov: 180,
         autoLoad: true,
         showControls: false,
         compass: false,
@@ -118,9 +149,45 @@ export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = fa
 
   useEffect(() => {
     const viewer = viewerRef.current
-    if (!viewer || !loaded) return
-    if (motion) viewer.startOrientation()
-    else viewer.stopOrientation()
+    if (!viewer || !loaded || !motion) return
+
+    let target: Orientation | null = null
+    let current: Orientation | null = null
+    let usingRelative = false
+    let frame = 0
+
+    const unsubscribe = watchOrientation((o) => {
+      if (!target) onMotionModeRef.current?.('compass')
+      target = o
+    })
+    const fallback = setTimeout(() => {
+      if (target) return
+      usingRelative = true
+      viewer.startOrientation()
+      onMotionModeRef.current?.('relative')
+    }, COMPASS_WAIT_MS)
+
+    const tick = () => {
+      if (target) {
+        current = current
+          ? {
+              heading: current.heading + angleDiff(target.heading, current.heading) * SMOOTHING,
+              pitch: current.pitch + (target.pitch - current.pitch) * SMOOTHING,
+            }
+          : target
+        viewer.setYaw(toYawRange(current.heading + yawOffsetRef.current), false)
+        viewer.setPitch(current.pitch, false)
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+
+    return () => {
+      unsubscribe()
+      clearTimeout(fallback)
+      cancelAnimationFrame(frame)
+      if (usingRelative) viewer.stopOrientation()
+    }
   }, [motion, loaded])
 
   return (

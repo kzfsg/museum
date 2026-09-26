@@ -13,9 +13,12 @@ const FRAME_WIDTH = 640
 interface CaptureProps {
   onDone: (frames: CapturedFrame[]) => void
   onCancel: () => void
+  // Saved scans within a few metres of here; lets the user skip scanning.
+  nearbyCount?: number
+  onOpenNearby?: () => void
 }
 
-export function Capture({ onDone, onCancel }: CaptureProps) {
+export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: CaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const framesRef = useRef<Map<number, CapturedFrame>>(new Map())
   const [filled, setFilled] = useState<Set<number>>(new Set())
@@ -90,6 +93,11 @@ export function Capture({ onDone, onCancel }: CaptureProps) {
       </header>
 
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-4 p-6">
+        {nearbyCount > 0 && onOpenNearby && (
+          <button onClick={onOpenNearby} className="rounded-md bg-surface/90 px-4 py-2 text-sm">
+            This spot has already been scanned · <span className="underline">View it now</span>
+          </button>
+        )}
         {cameraError && <p className="text-sm text-muted text-center">{cameraError}</p>}
         <p className="text-sm text-center">Hold your phone upright and turn slowly in a full circle.</p>
         <HeadingRing filled={filled} heading={heading} />

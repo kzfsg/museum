@@ -1,5 +1,3 @@
-import type { Place } from '@/src/data/places'
-
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371
   const toRad = (deg: number) => (deg * Math.PI) / 180
@@ -11,13 +9,21 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-export function nearestPlace(places: Place[], lat: number, lng: number) {
-  let best: { place: Place; km: number } | null = null
-  for (const place of places) {
-    const km = haversineKm(lat, lng, place.lat, place.lng)
-    if (!best || km < best.km) best = { place, km }
-  }
-  return best
+// Initial compass bearing (0 = north, clockwise) from point 1 to point 2.
+export function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLng = toRad(lng2 - lng1)
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2))
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
+    Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng)
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360
+}
+
+// Panoramas are stored with north at the image center (yaw 0), so a compass
+// bearing maps to a horizontal position as a fraction of the image width.
+export function bearingToImageFraction(bearing: number): number {
+  return (((0.5 + bearing / 360) % 1) + 1) % 1
 }
 
 export function getPosition(timeoutMs = 8000): Promise<GeolocationPosition> {

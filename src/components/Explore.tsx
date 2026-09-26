@@ -4,6 +4,7 @@ import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
 import { requestMotionPermission } from '@/src/lib/motion'
+import type { MotionMode } from '@/src/components/PanoramaViewer'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
@@ -18,6 +19,8 @@ interface ExploreProps {
 export function Explore({ place, onBack }: ExploreProps) {
   const [motion, setMotion] = useState(false)
   const [motionError, setMotionError] = useState<string | null>(null)
+  const [motionMode, setMotionMode] = useState<MotionMode | null>(null)
+  const [yawOffset, setYawOffset] = useState(0)
   const [openTidbitId, setOpenTidbitId] = useState<string | null>(null)
   const [listOpen, setListOpen] = useState(false)
 
@@ -26,6 +29,7 @@ export function Explore({ place, onBack }: ExploreProps) {
   async function toggleMotion() {
     if (motion) {
       setMotion(false)
+      setMotionMode(null)
       return
     }
     if (await requestMotionPermission()) {
@@ -43,6 +47,8 @@ export function Explore({ place, onBack }: ExploreProps) {
         hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
         onHotspotClick={setOpenTidbitId}
         motion={motion}
+        yawOffset={yawOffset}
+        onMotionMode={setMotionMode}
         yaw={place.startYaw}
       />
 
@@ -59,9 +65,26 @@ export function Explore({ place, onBack }: ExploreProps) {
 
       <footer className="absolute bottom-0 inset-x-0 z-20 p-4 space-y-2">
         {motionError && <p className="text-xs text-muted text-center">{motionError}</p>}
+        {motionMode === 'relative' && (
+          <p className="text-xs text-muted text-center">No compass on this device, so the view follows your turns but isn’t tied to north.</p>
+        )}
+        {motionMode === 'compass' && (
+          <label className="flex items-center gap-3 rounded-md bg-surface/80 px-3 py-2 text-xs text-muted">
+            <span className="shrink-0">Line it up</span>
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              value={yawOffset}
+              onChange={(e) => setYawOffset(Number(e.target.value))}
+              className="w-full accent-[var(--primary)]"
+            />
+            <span className="w-10 shrink-0 text-right tabular-nums">{yawOffset}°</span>
+          </label>
+        )}
         <div className="flex gap-2 justify-center">
           <button onClick={toggleMotion} className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm">
-            {motion ? 'Motion on' : 'Use motion'}
+            {!motion ? 'Use motion' : motionMode === 'compass' ? 'Compass on' : 'Motion on'}
           </button>
           {place.tidbits.length > 0 && (
             <button
@@ -91,7 +114,18 @@ export function Explore({ place, onBack }: ExploreProps) {
                 <div className="text-[10px] uppercase tracking-[0.15em] text-accent">{openTidbit.kind}</div>
                 <h3 className="font-display text-xl">{openTidbit.title}</h3>
                 <p className="text-sm text-foreground/90">{openTidbit.body}</p>
-                {openTidbit.source && <p className="text-xs text-muted">Source: {openTidbit.source}</p>}
+                {openTidbit.source && (
+                  <p className="text-xs text-muted">
+                    Source:{' '}
+                    {openTidbit.source.startsWith('https://') ? (
+                      <a href={openTidbit.source} target="_blank" rel="noreferrer" className="underline">
+                        {new URL(openTidbit.source).hostname}
+                      </a>
+                    ) : (
+                      openTidbit.source
+                    )}
+                  </p>
+                )}
                 <button onClick={() => setOpenTidbitId(null)} className="text-sm text-muted pt-2">
                   {listOpen ? '← All tidbits' : 'Close'}
                 </button>
