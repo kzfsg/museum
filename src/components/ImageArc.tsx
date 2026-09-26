@@ -16,7 +16,7 @@ import {
   WebGLRenderer,
 } from "three";
 // Copied from overlay-site/components/image-arc.tsx.
-// Original projection, shaders and motion are preserved; overlap is reduced.
+// Original projection, geometry, shaders and motion are preserved.
 // Integration changes: local diptychs, paired assignment, load/cleanup guards.
 const PHOTOS = ['liberty', 'times-square', 'brooklyn'] as const;
 type PhotoId = typeof PHOTOS[number];
@@ -55,8 +55,10 @@ const MAX_POOL = 64;
 const FOCAL_MIN_U = 64;
 const FOCAL_PER_HALF = 1.4;
 
-// Leave approximately 85% of each photograph visible along the ribbon.
-const PHOTO_OVERLAP = 0.15;
+const overlapAt = (s: number): number => {
+  const t = Math.min(1, s);
+  return 0.56 - 0.7 * t * (1 - t) + 0.1 * t;
+};
 
 const yawAt = (s: number): number =>
   TILT * (1 - Math.pow(1 - Math.min(s, 1), 1.6));
@@ -77,21 +79,14 @@ function solveGeometry(halfU: number, heroU: number, focalU: number): Geometry {
   const h0 = Math.min(SEAM_HEIGHT * heroU, SEAM_MAX * target);
   const growth = target / h0;
   const sizeAt = (s: number): number => h0 * Math.pow(growth, s);
-  const widthAt = (s: number): number => {
-    const size = sizeAt(s);
-    const yaw = yawAt(s);
-    // A shared perspective camera makes outward-turned cards wider than
-    // size * cos(yaw). Include that off-axis width when spacing photographs.
-    const screenX = halfU * (size - h0) / (target - h0);
-    const perspective = screenX / focalU * Math.sin(yaw);
-    return size * ASPECT * (Math.cos(yaw) + perspective);
-  };
+  const widthAt = (s: number): number =>
+    sizeAt(s) * ASPECT * Math.cos(yawAt(s));
 
   const N1 = 1024;
   let cover = 0;
   for (let i = 0; i < N1; i++) {
     const s = (i + 0.5) / N1;
-    cover += widthAt(s) * (1 - PHOTO_OVERLAP);
+    cover += widthAt(s) * (1 - overlapAt(s));
   }
   cover /= N1;
 
@@ -121,7 +116,7 @@ function solveGeometry(halfU: number, heroU: number, focalU: number): Geometry {
   let ax = 0;
   for (let i = 1; i <= LUT_N; i++) {
     const s = (i - 0.5) * ds;
-    ax += density * widthAt(s) * (1 - PHOTO_OVERLAP) * ds;
+    ax += density * widthAt(s) * (1 - overlapAt(s)) * ds;
     lut[i] = ax;
   }
   const axAt = (s: number): number => {

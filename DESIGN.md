@@ -68,7 +68,7 @@ At widths of 600px or less, padding becomes 96px above and 28px below, headline 
 
 ## Elevation & Depth
 
-Depth belongs to the image ribbon: the actual overlay-site ImageArc uses a shared perspective camera and curved WebGL surfaces, with the original center seam, square frames, fade and outward motion. The surrounding composition stays flat.
+Depth belongs to the image ribbon: the actual overlay-site ImageArc uses a shared perspective camera and curved WebGL surfaces, with the original center seam, spacing, square frames, fade and outward motion. The surrounding composition stays flat.
 
 ## Shapes
 
@@ -78,7 +78,7 @@ Photographs have gently rounded corners. The CTA is a dark pill with a matching 
 
 **Primary action.** “travel back in time” and an up-right arrow open camera capture. Hover lightens the fill and lifts the button 2px; active returns it to rest. Keyboard focus uses a 2px outline with 5px offset. Color and position transition over 180ms with ease timing; reduced motion removes the transition.
 
-**Time ribbon.** `ImageArc.tsx` is copied from overlay-site’s `components/image-arc.tsx`. Its geometry, shader, camera, 2.8-second emergence, center birth fade and 26-second traversal constant are retained. Integration selects matching past/current halves of generated NYC diptychs, using the same index and lap for opposite cards. Spacing uses 15% nominal overlap to expose approximately 85% of each photo; frame count adapts to the viewport. Reduced motion keeps a static arrangement; hidden/offscreen views suspend animation. The accessible description identifies the imagery as AI-generated reconstructions.
+**Time ribbon.** `ImageArc.tsx` is copied from overlay-site’s `components/image-arc.tsx`. Its geometry, shader, camera, 2.8-second emergence, center birth fade and 26-second traversal constant are retained. Integration selects matching past/current halves of generated NYC diptychs, using the same index and lap for opposite cards. Frame count adapts to the viewport. Reduced motion keeps a static arrangement; hidden/offscreen views suspend animation. The accessible description identifies the imagery as AI-generated reconstructions.
 
 ## Do's and Don'ts
 
