@@ -14,13 +14,13 @@ import type { ScanWithUrl } from '@/app/api/scans/route'
 
 type AppMode = 'splash' | 'capture' | 'review' | 'pick' | 'explore'
 
-function placeFromScan(scan: ScanResult): Place {
+function placeFromScan(scan: ScanResult, location: ScanLocation | null): Place {
   return {
-    id: `scan-${Date.now()}`,
+    id: `scan-${scan.savedId ?? Date.now()}`,
     name: 'your block',
     neighborhood: scan.generated ? 'reimagined from your scan' : 'raw scan',
-    lat: 0,
-    lng: 0,
+    lat: location?.lat ?? 0,
+    lng: location?.lng ?? 0,
     year: scan.year,
     panorama: scan.panoramaUrl,
     startYaw: scan.startYaw,
@@ -99,7 +99,7 @@ export default function Home() {
       <ScanReview
         frames={frames}
         location={location}
-        onResult={(scan) => openPlace(placeFromScan(scan))}
+        onResult={(scan) => openPlace(placeFromScan(scan, location))}
         onRetake={() => setMode('capture')}
         autoMotion={motionOk}
       />
@@ -119,8 +119,17 @@ export default function Home() {
 
   if (mode === 'explore' && place) {
     const fromScan = place.id.startsWith('scan-')
-    return <Explore place={place} onBack={() => setMode(fromScan ? 'splash' : 'pick')} autoMotion={motionOk} />
+    return (
+      <Explore
+        // Keyed so hopping to another scan starts with fresh view state.
+        key={place.id}
+        place={place}
+        onBack={() => setMode(fromScan ? 'splash' : 'pick')}
+        onPickScan={(scan) => openPlace(placeFromSaved(scan))}
+        autoMotion={motionOk}
+      />
+    )
   }
 
-  return <Splash onScan={startScan} />
+  return <Splash onScan={startScan} onPickScan={(scan) => openPlace(placeFromSaved(scan))} />
 }
