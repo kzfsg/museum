@@ -3,6 +3,7 @@
 //   &radius=..                     -> how near, in meters (default 60, max 2000)
 
 import { listScanIndex, nearestEntries, readScan, scanImageUrl, scanStoreEnabled, type SavedScan } from '@/src/lib/scanStore'
+import { findScanTraceInput, listTraceBlobPaths } from '@/src/lib/trace'
 
 export const runtime = 'nodejs'
 
@@ -28,9 +29,32 @@ export async function GET(req: Request) {
   const newestFirst = (a: { id: string }, b: { id: string }) => b.id.localeCompare(a.id)
   const entries = nearby ? nearestEntries(index, lat, lng, radius).sort(newestFirst) : index.sort(newestFirst)
 
-  const scans = await Promise.all(entries.slice(0, MAX_RESULTS).map((e) => readScan(e.pathname)))
-  const result: ScanWithUrl[] = scans
-    .filter((s): s is SavedScan => s !== null)
-    .map((s) => ({ ...s, imageUrl: scanImageUrl(s.imagePath), presentUrl: s.presentPath && scanImageUrl(s.presentPath) }))
+  const read = await Promise.all(entries.slice(0, MAX_RESULTS).map((e) => readScan(e.pathname)))
+  const scans = await withLegacyPresent(read.filter((s): s is SavedScan => s !== null))
+  const result: ScanWithUrl[] = scans.map((s) => ({
+    ...s,
+    imageUrl: scanImageUrl(s.imagePath),
+    presentUrl: s.presentPath && scanImageUrl(s.presentPath),
+  }))
   return Response.json({ scans: result })
+}
+
+// Scans saved before they kept their own present-day panorama still have it
+// as their generation trace's input, so the split view works for them too.
+async function withLegacyPresent(scans: SavedScan[]): Promise<SavedScan[]> {
+  if (scans.every((s) => s.presentPath)) return scans
+  try {
+    const tracePathnames = await listTraceBlobPaths()
+    return await Promise.all(
+      scans.map(async (s) => {
+        if (s.presentPath) return s
+        const presentPath = await findScanTraceInput(s.id, tracePathnames)
+        return presentPath ? { ...s, presentPath } : s
+      })
+    )
+  } catch (e) {
+    // Without it, those scans just don't offer the split view.
+    console.error('Legacy present lookup failed', e)
+    return scans
+  }
 }
