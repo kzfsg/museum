@@ -2,13 +2,16 @@
 
 import { ArrowUpRight, History } from 'lucide-react'
 import { ImageArc } from './ImageArc'
+import { ScanMap } from './ScanMap'
 import styles from './Splash.module.css'
+import type { ScanWithUrl } from '@/app/api/scans/route'
 
 interface SplashProps {
   onScan: () => void
+  onPickScan: (scan: ScanWithUrl) => void
 }
 
-export function Splash({ onScan }: SplashProps) {
+export function Splash({ onScan, onPickScan }: SplashProps) {
   return (
     <main className={styles.hero}>
       <div className={styles.wordmark}>time machine<History size={19} strokeWidth={1.5} aria-hidden="true" /></div>
@@ -27,6 +30,7 @@ export function Splash({ onScan }: SplashProps) {
         <span>scan your surroundings in new york city, and step into a simulation of how it looked like decades ago.</span>
         <span>learn the history of your neighbourhoods, block by block</span>
       </p>
+      <ScanMap onPick={onPickScan} />
     </main>
   )
 }

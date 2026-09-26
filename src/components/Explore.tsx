@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
 import { requestMotionPermission } from '@/src/lib/motion'
 import type { MotionMode } from '@/src/components/PanoramaViewer'
+import { ScanMap } from '@/src/components/ScanMap'
+import type { ScanWithUrl } from '@/app/api/scans/route'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
@@ -16,11 +18,13 @@ const PanoramaViewer = dynamic(
 interface ExploreProps {
   place: Place
   onBack: () => void
+  // Hop into another saved scan from the minimap.
+  onPickScan: (scan: ScanWithUrl) => void
   // Start with motion on (permission was already granted earlier in the session).
   autoMotion?: boolean
 }
 
-export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
+export function Explore({ place, onBack, onPickScan, autoMotion = false }: ExploreProps) {
   const [motion, setMotion] = useState(autoMotion)
   // Only complain about missing sensors if the user turned motion on themselves.
   const [userAskedForMotion, setUserAskedForMotion] = useState(false)
@@ -124,6 +128,16 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
           )}
         </div>
       </footer>
+
+      {/* After the footer so it stacks above it; hidden while aligning so it doesn't cover the slider. */}
+      {!alignOpen && (
+        <ScanMap
+          currentScanId={place.id.startsWith('scan-') ? place.id.slice('scan-'.length) : undefined}
+          center={place}
+          onPick={onPickScan}
+          className="bottom-20 md:bottom-4"
+        />
+      )}
 
       {(openTidbit || listOpen) && (
         <div

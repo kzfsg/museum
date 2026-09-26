@@ -36,6 +36,8 @@ export interface ScanResult {
   vOffset?: number
   viewHfov?: number
   note?: string | null
+  // Id in the scan store, when the scan was saved.
+  savedId?: string
 }
 
 export interface ScanLocation {
@@ -113,7 +115,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
         throw new Error(error)
       }
       const data = (await res.json()) as GenerateResponse
-      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov, note: data.note })
+      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov, note: data.note, savedId: data.saved?.id })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'generation failed. check your connection and try again.')
       setBusy(false)

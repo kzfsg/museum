@@ -465,3 +465,22 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+/* ============================================
+   Scan minimap (Leaflet)
+   ============================================ */
+.scan-map .leaflet-tile-pane {
+  filter: sepia(0.35) saturate(0.75) brightness(0.82) contrast(1.05);
+}
+
+.scan-map .leaflet-control-attribution {
+  background: oklch(0.21 0.012 50 / 0.8) !important;
+  color: var(--muted) !important;
+  font-size: 8px;
+  line-height: 1.2;
+  padding: 0 3px;
+}
+
+.scan-map .leaflet-control-attribution a {
+  color: inherit !important;
+}
