@@ -30,8 +30,11 @@ const SMOOTHING = 0.2
 const SENSOR_WAIT_MS = 1500
 // On a portrait phone, show roughly what the camera sees so the panorama feels
 // like looking through the phone rather than a zoomed-out fishbowl.
-const PORTRAIT_HFOV = CAMERA_HFOV_DEG + 8
+const PORTRAIT_HFOV = CAMERA_HFOV_DEG
 const LANDSCAPE_HFOV = 100
+// Partial bands are shown a bit tighter than "exactly fills the screen", which
+// leaves room to tilt the phone before hitting the band's edge.
+const PARTIAL_ZOOM = 0.8
 
 // Widest horizontal FOV at which a band `vaov` degrees tall still fills the
 // screen height, so partial panoramas never show empty space above or below.
@@ -50,6 +53,8 @@ interface PanoramaViewerProps {
   src: string
   // Vertical coverage in degrees; less than 180 for a partial (band) panorama.
   vaov?: number
+  // Degrees the band's center sits above the horizon (partial panoramas).
+  vOffset?: number
   hotspots?: PanoramaHotspot[]
   onHotspotClick?: (id: string) => void
   // Pan the view by moving the phone. Uses the compass when available so the
@@ -66,6 +71,7 @@ interface PanoramaViewerProps {
 export function PanoramaViewer({
   src,
   vaov = 180,
+  vOffset = 0,
   hotspots = [],
   onHotspotClick,
   motion = false,
@@ -88,6 +94,8 @@ export function PanoramaViewer({
   yawRef.current = yaw
   const vaovRef = useRef(vaov)
   vaovRef.current = vaov
+  const vOffsetRef = useRef(vOffset)
+  vOffsetRef.current = vOffset
   const yawOffsetRef = useRef(yawOffset)
   yawOffsetRef.current = yawOffset
   const onMotionModeRef = useRef(onMotionMode)
@@ -119,21 +127,23 @@ export function PanoramaViewer({
 
       const portrait = window.innerHeight > window.innerWidth
       const partial = vaovRef.current < 180
+      const band = { vaov: vaovRef.current, vOffset: partial ? vOffsetRef.current : 0 }
       const baseHfov = portrait ? PORTRAIT_HFOV : LANDSCAPE_HFOV
-      const maxFit = partial ? fitHfov(vaovRef.current, window.innerWidth, window.innerHeight) : Infinity
-      const hfov = Math.min(baseHfov, maxFit)
+      const maxFit = partial ? fitHfov(band.vaov, window.innerWidth, window.innerHeight) : Infinity
+      const hfov = partial ? Math.min(baseHfov, maxFit * PARTIAL_ZOOM) : baseHfov
       setLoaded(false)
       viewerRef.current = window.pannellum.viewer(containerRef.current, {
         type: 'equirectangular',
         panorama: src,
         // Explicit so any image aspect (e.g. the model's 3:2) wraps the sphere.
         haov: 360,
-        vaov: vaovRef.current,
+        vaov: band.vaov,
+        vOffset: band.vOffset,
         // For a partial band, stop the view at its edges instead of showing void.
         // Pannellum's background check needs explicit pitch limits (otherwise its
         // hfov becomes NaN and the viewer never loads).
         avoidShowingBackground: partial,
-        ...(partial && { minPitch: -vaovRef.current / 2, maxPitch: vaovRef.current / 2 }),
+        ...(partial && { minPitch: band.vOffset - band.vaov / 2, maxPitch: band.vOffset + band.vaov / 2 }),
         autoLoad: true,
         showControls: false,
         compass: false,
@@ -143,7 +153,7 @@ export function PanoramaViewer({
         maxHfov: Math.min(portrait ? 90 : 120, maxFit),
         friction: 0.15,
         yaw: yawRef.current,
-        pitch: 0,
+        pitch: band.vOffset,
         backgroundColor: [30, 24, 18],
         hotSpots: hotspotsRef.current.map((h) => ({
           pitch: h.pitch,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { angleDiff, watchOrientation, type Orientation } from '@/src/lib/motion'
+import { angleDiff, circularMean, normalizeDeg, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { canCapture, guide, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
 
@@ -21,7 +21,11 @@ interface CaptureProps {
 
 export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: CaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  // Frames are placed by gyro-only heading so they stay consistent with each
+  // other; the compass's view of north is collected separately and applied as
+  // one rotation at the end (see `finish`).
   const framesRef = useRef<Map<number, CapturedFrame>>(new Map())
+  const northOffsetsRef = useRef<number[]>([])
   const [filled, setFilled] = useState<Set<number>>(new Set())
   const [reading, setReading] = useState<Orientation | null>(null)
   // Total rotation so far, to notice a full lap that left gaps.
@@ -65,11 +69,12 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
     return watchOrientation((o) => {
       setReading(o)
       const turned = turnedRef.current
-      if (turned.last !== null) turned.total += Math.abs(angleDiff(o.heading, turned.last))
-      turned.last = o.heading
+      if (turned.last !== null) turned.total += Math.abs(angleDiff(o.rawHeading, turned.last))
+      turned.last = o.rawHeading
+      if (o.absolute) northOffsetsRef.current.push(normalizeDeg(o.heading - o.rawHeading))
       if (!canCapture(o)) return
-      const slot = Math.round(o.heading / SLOT_STEP) % SLOT_COUNT
-      if (Math.abs(angleDiff(o.heading, slot * SLOT_STEP)) <= CAPTURE_TOLERANCE_DEG) grabFrame(slot, o.heading, o.pitch)
+      const slot = Math.round(o.rawHeading / SLOT_STEP) % SLOT_COUNT
+      if (Math.abs(angleDiff(o.rawHeading, slot * SLOT_STEP)) <= CAPTURE_TOLERANCE_DEG) grabFrame(slot, o.rawHeading, o.pitch)
     })
   }, [])
 
@@ -91,9 +96,17 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   })
   const warning = guidance.status === 'too-fast' || guidance.status === 'tilted'
 
+  // Rotates the gyro-placed frames so heading 0 is north.
+  function finish() {
+    const offset = circularMean(northOffsetsRef.current) ?? 0
+    onDone([...framesRef.current.values()].map((f) => ({ ...f, heading: normalizeDeg(f.heading + offset) })))
+  }
+  const finishRef = useRef(finish)
+  finishRef.current = finish
+
   useEffect(() => {
-    if (complete) onDone([...framesRef.current.values()])
-  }, [complete, onDone])
+    if (complete) finishRef.current()
+  }, [complete])
 
   return (
     <main className="fixed inset-0 bg-black">
@@ -122,7 +135,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         >
           {guidance.message}
         </p>
-        <HeadingRing filled={filled} heading={heading} warning={warning} />
+        <HeadingRing filled={filled} heading={reading?.rawHeading ?? null} warning={warning} />
         <div className="flex gap-2">
           {heading === null && (
             <button onClick={manualCapture} className="rounded-md bg-primary px-4 py-2 text-sm">
@@ -130,7 +143,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
             </button>
           )}
           <button
-            onClick={() => onDone([...framesRef.current.values()])}
+            onClick={finish}
             disabled={count === 0}
             className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm disabled:opacity-40"
           >

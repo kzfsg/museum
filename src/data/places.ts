@@ -26,6 +26,7 @@ export interface Place {
   startYaw?: number
   // Vertical coverage for partial panoramas (raw scans); defaults to 180.
   vaov?: number
+  vOffset?: number
   tidbits: Tidbit[]
 }
 

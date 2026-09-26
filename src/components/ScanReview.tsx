@@ -26,6 +26,7 @@ export interface ScanResult {
   startYaw: number
   tidbits: Tidbit[]
   vaov?: number
+  vOffset?: number
 }
 
 export interface ScanLocation {
@@ -44,7 +45,7 @@ interface ScanReviewProps {
 }
 
 export function ScanReview({ frames, location, onResult, onRetake, autoMotion = false }: ScanReviewProps) {
-  const [preview, setPreview] = useState<{ url: string; vaov: number } | null>(null)
+  const [preview, setPreview] = useState<{ url: string; vaov: number; vOffset: number } | null>(null)
   const [year, setYear] = useState(1920)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,10 +54,10 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
 
   useEffect(() => {
     let url: string | null = null
-    const { canvas, vaov } = stitchBand(frames, PREVIEW_WIDTH)
+    const { canvas, vaov, vOffset } = stitchBand(frames, PREVIEW_WIDTH)
     canvasToBlob(canvas).then((blob) => {
       url = URL.createObjectURL(blob)
-      setPreview({ url, vaov })
+      setPreview({ url, vaov, vOffset })
     })
     return () => {
       if (url) URL.revokeObjectURL(url)
@@ -91,14 +92,14 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
 
   // A fresh URL, because the preview URL is revoked when this screen unmounts.
   async function viewRaw() {
-    const { canvas, vaov } = stitchBand(frames, PREVIEW_WIDTH)
+    const { canvas, vaov, vOffset } = stitchBand(frames, PREVIEW_WIDTH)
     const blob = await canvasToBlob(canvas)
-    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [], vaov })
+    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [], vaov, vOffset })
   }
 
   return (
     <main className="fixed inset-0">
-      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} yaw={startYaw} motion={autoMotion} />}
+      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} yaw={startYaw} motion={autoMotion} />}
 
       <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between p-4 hud-backdrop">
         <button onClick={onRetake} disabled={busy} className="text-sm text-muted">← Retake</button>

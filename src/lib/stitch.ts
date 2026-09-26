@@ -54,16 +54,28 @@ export function stitchEquirect(frames: CapturedFrame[], width: number, height: n
   return canvas
 }
 
-// Only the band the frames actually cover, for an immersive preview with no
-// gray caps. Show it with haov 360 and the returned vaov.
-export function stitchBand(frames: CapturedFrame[], width: number): { canvas: HTMLCanvasElement; vaov: number } {
+// Vertical extent (degrees above/below the horizon) covered by *every* frame,
+// so the preview has no blank rows. Falls back to the union if frames were
+// tilted so differently that they share no rows.
+export function bandExtent(frames: { pitch: number; image: { width: number; height: number } }[]): { top: number; bottom: number } {
+  const tops = frames.map((f) => f.pitch + frameVfov(f.image) / 2)
+  const bottoms = frames.map((f) => f.pitch - frameVfov(f.image) / 2)
+  const top = Math.min(...tops)
+  const bottom = Math.max(...bottoms)
+  if (top > bottom) return { top, bottom }
+  return { top: Math.max(...tops), bottom: Math.min(...bottoms) }
+}
+
+// Only the band every frame covers, for an immersive preview with no blank
+// space. Show it with haov 360, the returned vaov, and vOffset (the band's
+// center relative to the horizon).
+export function stitchBand(
+  frames: CapturedFrame[],
+  width: number
+): { canvas: HTMLCanvasElement; vaov: number; vOffset: number } {
   const pxPerDeg = width / 360
-  // The band spans from the lowest frame bottom to the highest frame top.
-  const top = Math.max(...frames.map((f) => f.pitch + frameVfov(f.image) / 2))
-  const bottom = Math.min(...frames.map((f) => f.pitch - frameVfov(f.image) / 2))
-  // Keep the horizon centered so Pannellum's pitch 0 stays level.
-  const half = Math.min(90, Math.max(top, -bottom))
-  const vaov = 2 * half
+  const { top, bottom } = bandExtent(frames)
+  const vaov = top - bottom
 
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -71,8 +83,9 @@ export function stitchBand(frames: CapturedFrame[], width: number): { canvas: HT
   const ctx = canvas.getContext('2d')!
   ctx.fillStyle = GAP_COLOR
   ctx.fillRect(0, 0, canvas.width, canvas.height)
-  drawFrames(ctx, frames, width, canvas.height / 2, [pxPerDeg, pxPerDeg])
-  return { canvas, vaov }
+  // Pitch 0 sits `top` degrees below the canvas's top edge.
+  drawFrames(ctx, frames, width, top * pxPerDeg, [pxPerDeg, pxPerDeg])
+  return { canvas, vaov, vOffset: (top + bottom) / 2 }
 }
 
 export function canvasToBlob(canvas: HTMLCanvasElement, type = 'image/jpeg', quality = 0.9): Promise<Blob> {

@@ -9,8 +9,9 @@ export const SCAN_SLOTS = 12
 export const MAX_CAPTURE_SPEED = 40
 // "Slow down" appears a little above the capture limit so it doesn't flicker.
 export const SLOW_DOWN_SPEED = 50
-// Frames tilted more than this from level are skipped.
-export const MAX_TILT_DEG = 15
+// Frames tilted more than this from level are skipped; the preview is cropped
+// to rows every frame covers, so tilted frames shrink it.
+export const MAX_TILT_DEG = 10
 
 export type GuideStatus = 'no-sensor' | 'too-fast' | 'tilted' | 'fill-gaps' | 'turning' | 'done'
 

@@ -26,6 +26,7 @@ function placeFromScan(scan: ScanResult): Place {
     startYaw: scan.startYaw,
     tidbits: scan.tidbits,
     vaov: scan.vaov,
+    vOffset: scan.vOffset,
   }
 }
 

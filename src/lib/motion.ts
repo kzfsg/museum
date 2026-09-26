@@ -41,6 +41,9 @@ export interface Orientation {
   absolute: boolean
   // Smoothed turning speed in degrees per second.
   speed: number
+  // Gyro-only heading, never adjusted by the compass. Consistent between
+  // readings (good for stitching) but not tied to north on iOS.
+  rawHeading: number
 }
 
 export interface OrientationSample {
@@ -107,7 +110,13 @@ export class OrientationTracker {
       absolute = true
     }
 
-    return { heading: ((heading % 360) + 360) % 360, pitch: Math.max(-85, Math.min(85, s.beta - 90)), absolute, speed: this.speed }
+    return {
+      heading: normalizeDeg(heading),
+      pitch: Math.max(-85, Math.min(85, s.beta - 90)),
+      absolute,
+      speed: this.speed,
+      rawHeading: normalizeDeg(raw),
+    }
   }
 }
 
@@ -134,6 +143,22 @@ export function watchOrientation(onOrientation: (o: Orientation) => void): () =>
     window.removeEventListener('deviceorientationabsolute', handle as EventListener)
     window.removeEventListener('deviceorientation', handle)
   }
+}
+
+export function normalizeDeg(deg: number): number {
+  return ((deg % 360) + 360) % 360
+}
+
+// Average of angles (degrees), handling wrap-around: mean of 350 and 10 is 0.
+export function circularMean(degs: number[]): number | null {
+  if (degs.length === 0) return null
+  let x = 0
+  let y = 0
+  for (const d of degs) {
+    x += Math.cos((d * Math.PI) / 180)
+    y += Math.sin((d * Math.PI) / 180)
+  }
+  return normalizeDeg((Math.atan2(y, x) * 180) / Math.PI)
 }
 
 // Smallest signed difference a - b in degrees, in [-180, 180).

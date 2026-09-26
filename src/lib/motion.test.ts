@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { angleDiff, headingFromEuler, OrientationTracker, toYawRange } from './motion'
+import { angleDiff, circularMean, headingFromEuler, OrientationTracker, toYawRange } from './motion'
 
 describe('headingFromEuler', () => {
   // Upright phone (beta 90). alpha grows counter-clockwise from north.
@@ -93,5 +93,25 @@ describe('OrientationTracker', () => {
   it('skips a compass that reports itself invalid', () => {
     const tracker = new OrientationTracker()
     expect(tracker.update(upright(0, 0, { compass: -1 }))).toMatchObject({ absolute: false })
+  })
+})
+
+describe('circularMean', () => {
+  it('averages across the 0/360 wrap', () => {
+    expect(circularMean([350, 10])).toBeCloseTo(0, 5)
+    expect(circularMean([80, 100])).toBeCloseTo(90, 5)
+    expect(circularMean([])).toBeNull()
+  })
+})
+
+describe('OrientationTracker rawHeading', () => {
+  it('stays gyro-only while the compass correction moves north', () => {
+    const tracker = new OrientationTracker()
+    const s = (t: number, compass: number) => ({ alpha: 0, beta: 90, gamma: 0, absolute: false, t, compass })
+    tracker.update(s(0, 0))
+    let r = tracker.update(s(20, 30))!
+    for (let t = 40; t <= 4000; t += 20) r = tracker.update(s(t, 30))!
+    expect(r.heading).toBeCloseTo(30, 0)
+    expect(r.rawHeading).toBeCloseTo(0, 5)
   })
 })
