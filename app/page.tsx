@@ -92,6 +92,8 @@ export default function Home() {
         onCancel={() => setMode('splash')}
         nearbyCount={nearbyScans.length}
         onOpenNearby={() => openPlace(placeFromSaved(nearbyScans[0]))}
+        here={location}
+        onPickScan={(scan) => openPlace(placeFromSaved(scan))}
       />
     )
   }
