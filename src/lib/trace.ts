@@ -98,3 +98,38 @@ export async function readTrace(id: string): Promise<Trace | null> {
   if (!result || result.statusCode !== 200) return null
   return (await new Response(result.stream).json()) as Trace
 }
+
+// Scans and traces are both named `<ms timestamp>-<random>`.
+function idTime(id: string): number {
+  return Number(id.split('-')[0])
+}
+
+// A generation's trace starts before the scan it saves, by at most the
+// generate route's time limit. Trace ids that could belong to `scanId`, nearest first.
+export function traceCandidatesForScan(scanId: string, traceIds: string[], windowMs = 300_000): string[] {
+  const saved = idTime(scanId)
+  return traceIds
+    .filter((id) => {
+      const started = idTime(id)
+      return started <= saved && saved - started <= windowMs
+    })
+    .sort((a, b) => idTime(b) - idTime(a))
+}
+
+// Every blob under traces/ (one list call), to look scans' traces up in.
+export async function listTraceBlobPaths(): Promise<Set<string>> {
+  const { blobs } = await list({ prefix: PREFIX, limit: 1000 })
+  return new Set(blobs.map((b) => b.pathname))
+}
+
+// The present-day panorama of a scan saved before scans kept their own copy:
+// the input of the trace that saved it, if that upload made it into the store.
+export async function findScanTraceInput(scanId: string, tracePathnames: Set<string>): Promise<string | null> {
+  const traceIds = [...tracePathnames].map((p) => /^traces\/([\w-]+)\.json$/.exec(p)?.[1]).filter((id): id is string => Boolean(id))
+  for (const id of traceCandidatesForScan(scanId, traceIds)) {
+    const trace = await readTrace(id)
+    if (trace?.outcome.status !== 'ok' || trace.outcome.savedScanId !== scanId) continue
+    return tracePathnames.has(trace.inputPath) ? trace.inputPath : null
+  }
+  return null
+}
