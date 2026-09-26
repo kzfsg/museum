@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import { TILE_OPTIONS, TILE_URL } from '@/src/lib/basemap'
 import { groupScans, type ScanGroup } from '@/src/lib/scanGroups'
 import { ScanListSheet } from '@/src/components/ScanListSheet'
-import styles from './chrome.module.css'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 
 // Leaflet is loaded from the CDN (like Pannellum), so only the bits used here are typed.
@@ -181,25 +180,5 @@ export function ScanMapView({ scans, currentScanId, center, here, zoom = STREET_
         />
       )}
     </>
-  )
-}
-
-interface ScanMapProps {
-  currentScanId?: string
-  center?: LatLng | null
-  onPick: (scan: ScanWithUrl) => void
-  // Vertical placement, so it can clear each screen's bottom controls.
-  className?: string
-}
-
-// Minimap of saved scans, pinned bottom-right; hidden when there are none.
-export function ScanMap({ currentScanId, center, onPick, className = 'bottom-4' }: ScanMapProps) {
-  const scans = useSavedScans()
-  if (!scans || scans.length === 0) return null
-
-  return (
-    <div className={`fixed right-4 z-20 h-40 w-40 md:h-48 md:w-64 ${styles.minimap} ${className}`}>
-      <ScanMapView scans={scans} currentScanId={currentScanId} center={center} zoom={17} onPick={onPick} className="h-full w-full" />
-    </div>
   )
 }

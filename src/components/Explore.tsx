@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, Headphones, History, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, Headphones, History, Map as MapIcon, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
@@ -9,7 +9,7 @@ import { requestMotionPermission } from '@/src/lib/motion'
 import { useAutoMotion } from '@/src/lib/useAutoMotion'
 import type { MotionMode, PannellumViewer } from '@/src/components/PanoramaViewer'
 import { readView, syncViews, type View } from '@/src/lib/viewSync'
-import { ScanMap } from '@/src/components/ScanMap'
+import { ScanMapView, useSavedScans } from '@/src/components/ScanMap'
 import { useTourGuide } from '@/src/components/useTourGuide'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 import type { Background } from '@/src/components/ScanReview'
@@ -18,6 +18,8 @@ const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
   { ssr: false }
 )
+
+const TIDBITS_SEEN = 'museum.tidbitsSeen'
 
 interface ExploreProps {
   place: Place
@@ -52,6 +54,22 @@ export function Explore({
   const [openTidbitId, setOpenTidbitId] = useState<string | null>(null)
   const [listOpen, setListOpen] = useState(false)
   const [split, setSplit] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  // The tidbits button pulses until the user has opened a tidbit once (ever, on this device).
+  const [tidbitsSeen, setTidbitsSeen] = useState(true)
+  useEffect(() => {
+    try {
+      setTidbitsSeen(localStorage.getItem(TIDBITS_SEEN) === '1')
+    } catch {}
+  }, [])
+  useEffect(() => {
+    if (tidbitsSeen || !(listOpen || openTidbitId)) return
+    setTidbitsSeen(true)
+    try {
+      localStorage.setItem(TIDBITS_SEEN, '1')
+    } catch {}
+  }, [tidbitsSeen, listOpen, openTidbitId])
+  const scans = useSavedScans()
   // Where the view pointed when the layout last changed, so switching keeps it.
   const [resume, setResume] = useState<View | null>(null)
   const thenViewer = useRef<PannellumViewer | null>(null)
@@ -167,6 +185,23 @@ export function Explore({
       )}
 
       <footer className={styles.bottom}>
+        {/* Opened from the map button; in the footer's flow so it sits above the hints and
+            buttons instead of covering them. Not in split view (it would cover "today"). */}
+        {mapOpen && scans && scans.length > 0 && !splitShown && (
+          <div className={`h-48 w-full max-w-sm self-end md:w-64 ${styles.minimap}`}>
+            <ScanMapView
+              scans={scans}
+              currentScanId={place.id.startsWith('scan-') ? place.id.slice('scan-'.length) : undefined}
+              center={place}
+              zoom={17}
+              onPick={(scan) => {
+                setMapOpen(false)
+                onPickScan(scan)
+              }}
+              className="h-full w-full"
+            />
+          </div>
+        )}
         {background?.status === 'developing' && (
           <p className={styles.waiting} aria-live="polite">
             your {background.year} is still developing…
@@ -204,19 +239,35 @@ export function Explore({
           </label>
         )}
         <div className={styles.row}>
-          <button onClick={toggleMotion} aria-pressed={motion} className={`${styles.pill} ${motion ? styles.ink : ''}`}>
+          <button
+            onClick={toggleMotion}
+            aria-pressed={motion}
+            aria-label={!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
+            title={!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
+            className={`${styles.pill} ${styles.round} ${motion ? styles.ink : ''}`}
+          >
             <Compass size={17} strokeWidth={1.75} aria-hidden="true" />
-            {!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
           </button>
           {motion && motionMode === 'compass' && (
-            <button onClick={() => setAlignOpen((open) => !open)} aria-pressed={alignOpen} className={styles.pill}>
+            <button
+              onClick={() => setAlignOpen((open) => !open)}
+              aria-pressed={alignOpen}
+              aria-label={alignOpen ? 'done aligning' : 'align'}
+              title={alignOpen ? 'done aligning' : 'align'}
+              className={`${styles.pill} ${styles.round} ${alignOpen ? styles.ink : ''}`}
+            >
               <SlidersHorizontal size={17} strokeWidth={1.75} aria-hidden="true" />
-              {alignOpen ? 'done' : 'align'}
             </button>
           )}
-          <button onClick={guide.toggle} aria-pressed={guideOn} className={`${styles.pill} ${guideOn ? styles.ink : ''}`}>
+          <button
+            onClick={guide.toggle}
+            aria-pressed={guideOn}
+            aria-busy={guide.status === 'connecting'}
+            aria-label={guide.status === 'connecting' ? 'calling guide…' : guideOn ? 'end tour' : 'tour guide'}
+            title={guide.status === 'connecting' ? 'calling guide…' : guideOn ? 'end tour' : 'tour guide'}
+            className={`${styles.pill} ${styles.round} ${guideOn ? styles.ink : ''}`}
+          >
             <Headphones size={17} strokeWidth={1.75} aria-hidden="true" />
-            {guide.status === 'connecting' ? 'calling guide…' : guideOn ? 'end tour' : 'guide'}
           </button>
           {guide.status === 'live' && (
             <button
@@ -241,25 +292,33 @@ export function Explore({
             </button>
           )}
           {place.tidbits.length > 0 && (
-            <button onClick={() => setListOpen(true)} className={styles.pill}>
+            <button
+              onClick={() => setListOpen(true)}
+              aria-label={`tidbits (${place.tidbits.length})`}
+              title={`tidbits (${place.tidbits.length})`}
+              className={`${styles.pill} ${styles.round} ${tidbitsSeen ? '' : `${styles.ink} ${styles.beckon}`}`}
+            >
               <BookOpen size={17} strokeWidth={1.75} aria-hidden="true" />
-              tidbits · {place.tidbits.length}
+              {!tidbitsSeen && (
+                <span className={styles.badge} aria-hidden="true">
+                  {place.tidbits.length}
+                </span>
+              )}
+            </button>
+          )}
+          {scans && scans.length > 0 && !splitShown && (
+            <button
+              onClick={() => setMapOpen((open) => !open)}
+              aria-pressed={mapOpen}
+              aria-label={mapOpen ? 'hide map' : 'map of nearby scans'}
+              title={mapOpen ? 'hide map' : 'map of nearby scans'}
+              className={`${styles.pill} ${styles.round} ${mapOpen ? styles.ink : ''}`}
+            >
+              <MapIcon size={17} strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
         </div>
       </footer>
-
-      {/* After the footer so it stacks above it. Hidden while aligning (it would cover the
-          slider), in split view (it would cover most of the "today" pane on a phone), and
-          while the user's own scan is developing (it would cover that status and its button). */}
-      {!alignOpen && !splitShown && !background && (
-        <ScanMap
-          currentScanId={place.id.startsWith('scan-') ? place.id.slice('scan-'.length) : undefined}
-          center={place}
-          onPick={onPickScan}
-          className="bottom-20 md:bottom-4"
-        />
-      )}
 
       {(openTidbit || listOpen) && (
         <div
