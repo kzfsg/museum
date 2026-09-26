@@ -25,7 +25,7 @@ type PhotoId = typeof PHOTOS[number];
 const photoUrl = (id: PhotoId) => `/images/time-machine/${id}.jpg`;
 
 // TUNE THIS: 1 = original density; larger = fewer photos and more space.
-// This changes only the number of cards placed on the original path.
+// Spacing ramps up away from the center; the center retains original density.
 const PHOTO_SPACING = 1.8;
 
 const ASPECT = 1;
@@ -332,12 +332,10 @@ function createRibbon(
     focalU = Math.max(FOCAL_MIN_U, halfU * FOCAL_PER_HALF);
     geo = solveGeometry(halfU, height / u, focalU);
 
-    // Keep geo.pool, sEnd and the path intact. Only spread fewer cards over it,
-    // so the geometry solver cannot normalize away the spacing adjustment.
-    const visiblePairs = Math.max(2, Math.round(geo.pool / Math.max(1, PHOTO_SPACING)));
+    // Keep the reference's birth cadence so the center never waits for a card.
     for (const card of cards) {
-      card.mesh.visible = card.index < visiblePairs;
-      card.phase = card.index / visiblePairs;
+      card.mesh.visible = card.index < geo.pool;
+      card.phase = card.index / geo.pool;
     }
     const cy = stageRect.top - rect.top + stageRect.height / 2;
     const focal = focalU * u;
@@ -375,7 +373,7 @@ function createRibbon(
     }
     const flow = t / (PERIOD * geo.sEnd);
     for (const card of cards) {
-      if (!card.mesh.visible) continue;
+      if (card.index >= geo.pool) continue;
       const raw = card.phase + flow;
       const lap = Math.floor(raw);
       if (lap !== card.lap) {
@@ -385,7 +383,15 @@ function createRibbon(
       } else if (card.pending) {
         card.pending = !assign(card, photos);
       }
-      place(card, (raw - lap) * geo.sEnd * emerge);
+      const progress = (raw - lap) * geo.sEnd;
+      // Leave the center and its fade exactly as in the reference. Spread cards
+      // progressively farther apart only once they have cleared the center.
+      const transition = Math.min(1, Math.max(0, (progress - 0.12) / 0.38));
+      const spacing = 1 + (Math.max(1, PHOTO_SPACING) - 1)
+        * transition * transition * (3 - 2 * transition);
+      const position = progress * spacing * emerge;
+      card.mesh.visible = position <= geo.sEnd;
+      if (card.mesh.visible) place(card, position);
     }
   };
 
