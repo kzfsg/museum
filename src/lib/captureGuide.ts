@@ -45,7 +45,7 @@ export function canCapture(input: Pick<GuideInput, 'speed' | 'pitch'>): boolean 
 }
 
 export function guide(input: GuideInput): { status: GuideStatus; message: string } {
-  if (!input.hasSensor) return { status: 'no-sensor', message: 'no motion sensor. tap capture, turning a little between taps' }
+  if (!input.hasSensor) return { status: 'no-sensor', message: 'turn on motion, then turn slowly in place. photos are taken as you go' }
   if (input.filled >= input.total) return { status: 'done', message: 'got it' }
   if (input.speed > SLOW_DOWN_SPEED) return { status: 'too-fast', message: 'slow down, turn more slowly' }
   if (Math.abs(input.pitch) > MAX_TILT_DEG) {
