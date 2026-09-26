@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultHfov, estimateHfov, matchPair, normalizeGray, type FovFrame } from './fov'
+import { coverHfov, defaultHfov, estimateHfov, matchPair, normalizeGray, type FovFrame } from './fov'
 
 // A deterministic textured 360-degree world, 10 px per degree.
 const WORLD_W = 3600
@@ -43,6 +43,26 @@ describe('defaultHfov', () => {
   it('depends on the video aspect ratio in portrait', () => {
     expect(defaultHfov(720, 1280)).toBeCloseTo(43, 0) // 16:9
     expect(defaultHfov(960, 1280)).toBeCloseTo(55, 0) // 4:3
+  })
+})
+
+describe('coverHfov', () => {
+  it('narrows when a tall box crops the sides', () => {
+    // A 16:9 portrait stream in a tall box: height fits, width is cropped.
+    expect(coverHfov(43, 720, 1280, 390, 844)).toBeLessThan(43)
+    // Same shape as the video: nothing cropped.
+    expect(coverHfov(43, 720, 1280, 360, 640)).toBeCloseTo(43, 5)
+  })
+
+  it('keeps the full width when a wide box crops top and bottom', () => {
+    // Portrait stream in a half-screen pane (wider than the video): width fits.
+    expect(coverHfov(43, 720, 1280, 390, 420)).toBeCloseTo(43, 5)
+  })
+
+  it('narrows by the cropped fraction on the tangent plane', () => {
+    // Box half as wide as the scaled video: tan(visible/2) = tan(60/2) / 2.
+    const expected = (2 * Math.atan(Math.tan(Math.PI / 6) / 2) * 180) / Math.PI
+    expect(coverHfov(60, 1000, 1000, 500, 1000)).toBeCloseTo(expected, 5)
   })
 })
 
