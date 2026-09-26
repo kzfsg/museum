@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { angleDiff, circularMean, normalizeDeg, watchOrientation, type Orientation } from '@/src/lib/motion'
-import { canCapture, guide, SCAN_SLOTS } from '@/src/lib/captureGuide'
+import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
 
 const SLOT_COUNT = SCAN_SLOTS
@@ -21,6 +21,8 @@ interface CaptureProps {
 
 export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: CaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  // When the camera started delivering frames (null until then).
+  const cameraReadyAtRef = useRef<number | null>(null)
   // Frames are placed by gyro-only heading so they stay consistent with each
   // other; the compass's view of north is collected separately and applied as
   // one rotation at the end (see `finish`).
@@ -57,10 +59,20 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   function grabFrame(slot: number, frameHeading: number, framePitch: number) {
     const video = videoRef.current
     if (!video || video.videoWidth === 0 || framesRef.current.has(slot)) return
+    const readyAt = cameraReadyAtRef.current
+    if (readyAt === null || performance.now() - readyAt < CAMERA_WARMUP_MS) return
     const canvas = document.createElement('canvas')
     canvas.width = FRAME_WIDTH
     canvas.height = Math.round((FRAME_WIDTH * video.videoHeight) / video.videoWidth)
-    canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    // Leave the slot open if the camera handed us a black frame.
+    const probe = document.createElement('canvas')
+    probe.width = 16
+    probe.height = 16
+    const probeCtx = probe.getContext('2d', { willReadFrequently: true })!
+    probeCtx.drawImage(canvas, 0, 0, 16, 16)
+    if (!isUsableFrame(probeCtx.getImageData(0, 0, 16, 16).data)) return
     framesRef.current.set(slot, { heading: frameHeading, pitch: framePitch, image: canvas })
     setFilled(new Set(framesRef.current.keys()))
   }
@@ -110,7 +122,16 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
 
   return (
     <main className="fixed inset-0 bg-black">
-      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onPlaying={() => {
+          cameraReadyAtRef.current ??= performance.now()
+        }}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
 
       <header className="absolute top-0 inset-x-0 z-10 flex items-start justify-between p-4 hud-backdrop">
         <button onClick={onCancel} className="text-sm text-muted">Cancel</button>

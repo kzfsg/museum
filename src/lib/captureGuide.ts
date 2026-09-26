@@ -13,6 +13,21 @@ export const SLOW_DOWN_SPEED = 50
 // to rows every frame covers, so tilted frames shrink it.
 export const MAX_TILT_DEG = 10
 
+// Cameras (notably iPhones) send black or very dark frames while starting up;
+// frames are ignored for this long after the video starts playing.
+export const CAMERA_WARMUP_MS = 1000
+// Frames darker than this average luminance (0-255) are treated as a camera
+// glitch and not kept, so their slot gets captured again.
+export const MIN_FRAME_LUMINANCE = 16
+
+// `rgba` is canvas ImageData.data.
+export function isUsableFrame(rgba: ArrayLike<number>): boolean {
+  let sum = 0
+  const pixels = rgba.length / 4
+  for (let i = 0; i < rgba.length; i += 4) sum += 0.299 * rgba[i] + 0.587 * rgba[i + 1] + 0.114 * rgba[i + 2]
+  return pixels > 0 && sum / pixels >= MIN_FRAME_LUMINANCE
+}
+
 export type GuideStatus = 'no-sensor' | 'too-fast' | 'tilted' | 'fill-gaps' | 'turning' | 'done'
 
 export interface GuideInput {

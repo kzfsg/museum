@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canCapture, guide, type GuideInput } from './captureGuide'
+import { canCapture, guide, isUsableFrame, type GuideInput } from './captureGuide'
 
 const base: GuideInput = { hasSensor: true, speed: 10, pitch: 0, filled: 3, total: 12, turnedDeg: 90 }
 
@@ -30,5 +30,16 @@ describe('guide', () => {
   it('handles devices without sensors and finished scans', () => {
     expect(guide({ ...base, hasSensor: false }).status).toBe('no-sensor')
     expect(guide({ ...base, filled: 12 }).status).toBe('done')
+  })
+})
+
+describe('isUsableFrame', () => {
+  const frame = (v: number) => new Uint8ClampedArray(16 * 16 * 4).map((_, i) => (i % 4 === 3 ? 255 : v))
+  it('rejects black startup frames', () => {
+    expect(isUsableFrame(frame(0))).toBe(false)
+    expect(isUsableFrame(frame(10))).toBe(false)
+  })
+  it('keeps dim but real frames', () => {
+    expect(isUsableFrame(frame(30))).toBe(true)
   })
 })
