@@ -1,23 +1,32 @@
+'use client'
+
+import { ArrowUpRight, History } from 'lucide-react'
+import { ImageArc } from './ImageArc'
+import styles from './Splash.module.css'
+
 interface SplashProps {
   onScan: () => void
-  onBrowse: () => void
 }
 
-export function Splash({ onScan, onBrowse }: SplashProps) {
+export function Splash({ onScan }: SplashProps) {
   return (
-    <main className="min-h-dvh flex flex-col items-center justify-center gap-8 px-6 text-center">
-      <div className="space-y-3">
-        <h1 className="font-display text-5xl">Museum</h1>
-        <p className="text-muted max-w-xs mx-auto">Turn the block you’re standing on into a museum.</p>
+    <main className={styles.hero}>
+      <div className={styles.wordmark}>time machine<History size={19} strokeWidth={1.5} aria-hidden="true" /></div>
+      <div className={styles.intro}>
+        <h1>travel back in time,</h1>
+        <p>transform your new york<br />into a living museum</p>
       </div>
-      <div className="flex flex-col gap-3 w-full max-w-xs">
-        <button onClick={onScan} className="rounded-md bg-primary px-4 py-3 font-medium text-foreground">
-          Scan my surroundings
-        </button>
-        <button onClick={onBrowse} className="rounded-md border border-border px-4 py-3 text-muted">
-          Browse spots
+      <ImageArc stageId="hero-stage" />
+      <div id="hero-stage" className={styles.ribbon} role="img" aria-label="AI-generated reconstructions of NYC landmarks: matching past views on the left and present views on the right." />
+      <div className={styles.action}>
+        <button onClick={onScan} className={styles.button}>
+          travel back in time <ArrowUpRight size={19} aria-hidden="true" />
         </button>
       </div>
+      <p className={styles.subtitle}>
+        <span>scan your surroundings in new york city, and step into a simulation of how it looked like decades ago.</span>
+        <span>learn the history of your neighbourhoods, block by block</span>
+      </p>
     </main>
   )
 }

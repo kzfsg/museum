@@ -1,0 +1,95 @@
+.hero {
+  --hero-ink: #20211e;
+  --u: min(1vw, 16px);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  overflow: hidden;
+  background: #fafaf7;
+  color: var(--hero-ink);
+  padding: 108px 0 36px;
+  text-align: center;
+}
+.wordmark {
+  position: absolute;
+  top: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+.intro { position: relative; z-index: 2; padding: 0 22px; }
+.intro h1 {
+  font-size: clamp(38px, 4.9vw, 70px);
+  line-height: 1.08;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+.intro p {
+  margin-top: 12px;
+  color: #696b63;
+  font-size: clamp(24px, 3.1vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.ribbon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: calc(var(--u) * 12);
+  margin: calc(var(--u) * 3) 0;
+}
+@media (max-width: 1023px) { .hero { --u: 1.5vw; } }
+@media (max-width: 639px) { .hero { --u: 2.2vw; } }
+.action { position: relative; z-index: 2; margin-top: 15px; }
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 1px solid #20211e;
+  border-radius: 100px;
+  background: #20211e;
+  color: #fafaf7;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 180ms ease, transform 180ms ease;
+}
+.button:hover { background: #41443b; transform: translateY(-2px); }
+.button:active { transform: translateY(0); }
+.button:focus-visible { outline: 2px solid #42644c; outline-offset: 5px; }
+.subtitle {
+  position: relative;
+  z-index: 2;
+  margin: 38px 24px 0;
+  max-width: 660px;
+  color: #676960;
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+.subtitle span { display: block; }
+.subtitle span + span { margin-top: 4px; }
+.hero ::selection { background: #d6dfcf; color: #20211e; }
+@media (min-width: 1500px) { .hero { gap: 8px; } }
+@media (max-width: 600px) {
+  .hero { padding: 96px 0 28px; }
+  .wordmark { top: 26px; font-size: 18px; }
+  .intro h1 { font-size: clamp(32px, 8.9vw, 48px); }
+  .intro p { font-size: clamp(24px, 6.5vw, 32px); margin-top: 14px; }
+  .subtitle { margin-top: 30px; max-width: 340px; font-size: 13px; }
+  .subtitle span + span { margin-top: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+}
