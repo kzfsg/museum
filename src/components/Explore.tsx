@@ -3,25 +3,12 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
+import { requestMotionPermission } from '@/src/lib/motion'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
   { ssr: false }
 )
-
-// iOS only grants device orientation after a user gesture asks for it.
-async function requestMotionPermission(): Promise<boolean> {
-  const DOE = globalThis.DeviceOrientationEvent as unknown as
-    | { requestPermission?: () => Promise<'granted' | 'denied'> }
-    | undefined
-  if (!DOE) return false
-  if (typeof DOE.requestPermission !== 'function') return true
-  try {
-    return (await DOE.requestPermission()) === 'granted'
-  } catch {
-    return false
-  }
-}
 
 interface ExploreProps {
   place: Place
@@ -56,10 +43,11 @@ export function Explore({ place, onBack }: ExploreProps) {
         hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
         onHotspotClick={setOpenTidbitId}
         motion={motion}
+        yaw={place.startYaw}
       />
 
       <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between gap-4 p-4 hud-backdrop">
-        <button onClick={onBack} className="text-sm text-muted">← Spots</button>
+        <button onClick={onBack} className="text-sm text-muted">← Back</button>
         <div className="text-right">
           <div className="font-display text-lg">{place.name}</div>
           <div className="text-xs text-muted">
@@ -75,12 +63,14 @@ export function Explore({ place, onBack }: ExploreProps) {
           <button onClick={toggleMotion} className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm">
             {motion ? 'Motion on' : 'Use motion'}
           </button>
-          <button
-            onClick={() => setListOpen(true)}
-            className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
-          >
-            Tidbits ({place.tidbits.length})
-          </button>
+          {place.tidbits.length > 0 && (
+            <button
+              onClick={() => setListOpen(true)}
+              className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
+            >
+              Tidbits ({place.tidbits.length})
+            </button>
+          )}
         </div>
       </footer>
 

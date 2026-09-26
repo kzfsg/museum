@@ -31,10 +31,12 @@ interface PanoramaViewerProps {
   onHotspotClick?: (id: string) => void
   // Pan the view by moving the phone (device orientation).
   motion?: boolean
+  // Initial view direction; for scans this equals the compass heading.
+  yaw?: number
   onLoad?: () => void
 }
 
-export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = false, onLoad }: PanoramaViewerProps) {
+export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = false, yaw = 0, onLoad }: PanoramaViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<PannellumViewer | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -45,6 +47,8 @@ export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = fa
   // Hotspots are read once per panorama; they change together with `src`.
   const hotspotsRef = useRef(hotspots)
   hotspotsRef.current = hotspots
+  const yawRef = useRef(yaw)
+  yawRef.current = yaw
 
   useEffect(() => {
     let mounted = true
@@ -82,7 +86,7 @@ export function PanoramaViewer({ src, hotspots = [], onHotspotClick, motion = fa
         minHfov: 50,
         maxHfov: 120,
         friction: 0.15,
-        yaw: 0,
+        yaw: yawRef.current,
         pitch: 0,
         backgroundColor: [30, 24, 18],
         hotSpots: hotspotsRef.current.map((h) => ({

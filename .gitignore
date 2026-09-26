@@ -20,3 +20,4 @@ ete-results/
 # Playwright MCP output
 .playwright-mcp/
 *.tsbuildinfo
+.env*

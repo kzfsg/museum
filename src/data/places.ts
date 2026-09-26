@@ -23,6 +23,7 @@ export interface Place {
   year: number
   panorama: string
   placeholder?: boolean
+  startYaw?: number
   tidbits: Tidbit[]
 }
 

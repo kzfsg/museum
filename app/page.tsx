@@ -1,68 +1,74 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Splash } from '@/src/components/Splash'
 import { PlacePicker } from '@/src/components/PlacePicker'
 import { Explore } from '@/src/components/Explore'
+import { Capture } from '@/src/components/Capture'
+import { ScanReview, type ScanResult } from '@/src/components/ScanReview'
 import { places, type Place } from '@/src/data/places'
-import { getPosition, nearestPlace } from '@/src/lib/geo'
+import { requestMotionPermission } from '@/src/lib/motion'
+import type { CapturedFrame } from '@/src/lib/stitch'
 
-// How close you need to be to a spot for "Scan" to open it directly.
-const NEARBY_KM = 2
+type AppMode = 'splash' | 'capture' | 'review' | 'pick' | 'explore'
 
-type AppMode = 'splash' | 'locating' | 'pick' | 'explore'
+function placeFromScan(scan: ScanResult): Place {
+  return {
+    id: `scan-${Date.now()}`,
+    name: 'Your block',
+    neighborhood: scan.generated ? 'Reimagined from your scan' : 'Raw scan',
+    lat: 0,
+    lng: 0,
+    year: scan.year,
+    panorama: scan.panoramaUrl,
+    startYaw: scan.startYaw,
+    tidbits: [],
+  }
+}
 
 export default function Home() {
   const [mode, setMode] = useState<AppMode>('splash')
   const [place, setPlace] = useState<Place | null>(null)
-  const [notice, setNotice] = useState<string | undefined>()
-  // Bumped whenever the user leaves the locating screen, so a late result is ignored.
-  const scanId = useRef(0)
+  const [frames, setFrames] = useState<CapturedFrame[]>([])
+
+  async function startScan() {
+    // Must run inside the tap for iOS to show the motion permission prompt.
+    await requestMotionPermission()
+    setMode('capture')
+  }
+
+  const finishCapture = useCallback((captured: CapturedFrame[]) => {
+    setFrames(captured)
+    setMode('review')
+  }, [])
 
   function openPlace(next: Place) {
     setPlace(next)
     setMode('explore')
   }
 
-  function browse(message?: string) {
-    scanId.current++
-    setNotice(message)
-    setMode('pick')
+  if (mode === 'capture') {
+    return <Capture onDone={finishCapture} onCancel={() => setMode('splash')} />
   }
 
-  async function scan() {
-    setMode('locating')
-    const id = ++scanId.current
-    try {
-      const { coords } = await getPosition()
-      if (id !== scanId.current) return
-      const nearest = nearestPlace(places, coords.latitude, coords.longitude)
-      if (nearest && nearest.km <= NEARBY_KM) openPlace(nearest.place)
-      else browse(`No spots within ${NEARBY_KM} km of you yet. Pick one to explore.`)
-    } catch {
-      if (id !== scanId.current) return
-      browse('Couldn’t get your location. Pick a spot to explore.')
-    }
-  }
-
-  if (mode === 'locating') {
+  if (mode === 'review') {
     return (
-      <main className="min-h-dvh flex flex-col items-center justify-center gap-6">
-        <p className="text-[10px] tracking-[0.15em] text-muted uppercase">Finding where you are…</p>
-        <button onClick={() => browse()} className="text-sm text-muted underline">
-          Pick a spot instead
-        </button>
-      </main>
+      <ScanReview
+        frames={frames}
+        onResult={(scan) => openPlace(placeFromScan(scan))}
+        onRetake={() => setMode('capture')}
+      />
     )
   }
 
   if (mode === 'pick') {
-    return <PlacePicker places={places} notice={notice} onPick={openPlace} onBack={() => setMode('splash')} />
+    return <PlacePicker places={places} onPick={openPlace} onBack={() => setMode('splash')} />
   }
 
   if (mode === 'explore' && place) {
-    return <Explore place={place} onBack={() => browse()} />
+    const fromScan = place.id.startsWith('scan-')
+    return <Explore place={place} onBack={() => setMode(fromScan ? 'splash' : 'pick')} />
   }
 
-  return <Splash onScan={scan} onBrowse={() => browse()} />
+  return <Splash onScan={startScan} onBrowse={() => setMode('pick')} />
 }

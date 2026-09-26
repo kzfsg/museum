@@ -14,92 +14,106 @@
 		"src/lib": "Game Formatting Utils",
 		"folder:src/lib": "Game Formatting Utils",
 		"src/data": "Places Catalog",
-		"folder:src/data": "Places Catalog"
+		"folder:src/data": "Places Catalog",
+		"app/api": "Generate API",
+		"folder:app/api": "Generate API"
 	},
 	"prose": {
 		"app": {
 			"name": "Main App",
 			"kind": "ui",
-			"summary": "A Next.js app entry point that combines the home page, metadata, and root layout with game state. It is the top level interface users open first.\n\nDefines the home page and root layout, plus the solo, lightning, demo, multiplayer, leaderboard, and guess flow handlers. It imports the panorama viewer and shared helpers to run the main game experience.\n\nRuns in the browser and at render time.\n\nUses Panorama Viewer and Shared Helpers. The page is the main consumer of both.",
-			"role": "Handles the playable app experience and routes."
+			"summary": "An App Router surface that combines page and layout code into the site's entry point.\n\nDefines Home, RootLayout, metadata, viewport, and the mode switching actions openPlace, browse, and scan.\n\nRendered by Next.js on request and client navigation.\n\nConsumes the Explore UI, Place Data, and Geo Motion Library.",
+			"role": "Serves the main home experience."
 		},
 		"folder:app": {
 			"name": "Main App",
 			"kind": "ui",
-			"summary": "A Next.js app entry point that combines the home page, metadata, and root layout with game state. It is the top level interface users open first.\n\nDefines the home page and root layout, plus the solo, lightning, demo, multiplayer, leaderboard, and guess flow handlers. It imports the panorama viewer and shared helpers to run the main game experience.\n\nRuns in the browser and at render time.\n\nUses Panorama Viewer and Shared Helpers. The page is the main consumer of both.",
-			"role": "Handles the playable app experience and routes."
+			"summary": "An App Router surface that combines page and layout code into the site's entry point.\n\nDefines Home, RootLayout, metadata, viewport, and the mode switching actions openPlace, browse, and scan.\n\nRendered by Next.js on request and client navigation.\n\nConsumes the Explore UI, Place Data, and Geo Motion Library.",
+			"role": "Serves the main home experience."
 		},
 		"components components/ui": {
 			"name": "UI Toolkit",
-			"kind": "ui",
-			"summary": "A component library made of composable React primitives for common interface patterns. It collects buttons, inputs, dialogs, sidebar pieces, and feedback widgets into one shared toolkit.\n\nExports Button, Sidebar, toast UI, form controls, and many other widgets used across the app. It also contains the sidebar provider and context that coordinate sidebar behavior.\n\nRuns in the browser as imported React components.\n\nBuilds on UI Hooks and Utility Library. The app consumes these controls indirectly through its pages and features.",
-			"role": "Provides reusable controls and layout primitives."
+			"kind": "library",
+			"summary": "A React design system of reusable components and providers for consistent UI.\n\nExports Button, Sidebar, ThemeProvider, toast primitives, and many form and navigation controls.\n\nPure component library used by client code.\n\nUsed by Behavior Hooks and the app shell.",
+			"role": "Provides shared interface primitives."
 		},
 		"folder:components": {
 			"name": "UI Toolkit",
-			"kind": "ui",
-			"summary": "A component library made of composable React primitives for common interface patterns. It collects buttons, inputs, dialogs, sidebar pieces, and feedback widgets into one shared toolkit.\n\nExports Button, Sidebar, toast UI, form controls, and many other widgets used across the app. It also contains the sidebar provider and context that coordinate sidebar behavior.\n\nRuns in the browser as imported React components.\n\nBuilds on UI Hooks and Utility Library. The app consumes these controls indirectly through its pages and features.",
-			"role": "Provides reusable controls and layout primitives."
+			"kind": "library",
+			"summary": "A React design system of reusable components and providers for consistent UI.\n\nExports Button, Sidebar, ThemeProvider, toast primitives, and many form and navigation controls.\n\nPure component library used by client code.\n\nUsed by Behavior Hooks and the app shell.",
+			"role": "Provides shared interface primitives."
 		},
 		"hooks": {
 			"name": "React Hooks",
 			"kind": "library",
-			"summary": "A hook module that packages client side state and browser event handling. It turns toast notifications and responsive breakpoints into reusable React hooks.\n\nImplements the toast reducer, queue, dispatch helpers, and the useToast hook, plus mobile detection through useIsMobile. The UI kit uses these hooks for notifications and responsive behavior.\n\nRuns in the browser as hook logic.\n\nSupports UI Kit. It depends on Utility Library only through the UI layer's usage patterns.",
-			"role": "Handles toast state and viewport checks."
+			"summary": "A hook library for browser specific state and notifications.\n\nImplements toast state, dispatch, and mobile breakpoint detection through useToast and useIsMobile.\n\nRuns in the browser when React components mount.\n\nBuilds on the UI Kit and supports its toast and mobile behavior.",
+			"role": "Provides reusable client hooks."
 		},
 		"folder:hooks": {
 			"name": "React Hooks",
 			"kind": "library",
-			"summary": "A hook module that packages client side state and browser event handling. It turns toast notifications and responsive breakpoints into reusable React hooks.\n\nImplements the toast reducer, queue, dispatch helpers, and the useToast hook, plus mobile detection through useIsMobile. The UI kit uses these hooks for notifications and responsive behavior.\n\nRuns in the browser as hook logic.\n\nSupports UI Kit. It depends on Utility Library only through the UI layer's usage patterns.",
-			"role": "Handles toast state and viewport checks."
+			"summary": "A hook library for browser specific state and notifications.\n\nImplements toast state, dispatch, and mobile breakpoint detection through useToast and useIsMobile.\n\nRuns in the browser when React components mount.\n\nBuilds on the UI Kit and supports its toast and mobile behavior.",
+			"role": "Provides reusable client hooks."
 		},
 		"lib": {
 			"name": "Shared Utils",
 			"kind": "library",
-			"summary": "A pure helper module for small reusable functions. It is the place for class name merging and other generic formatting utilities.\n\nExports cn for joining class names, which the component layer uses for styling composition. It is a simple support module with no UI of its own.\n\nPure library with no runtime of its own.\n\nFeeds UI Kit. The app and hooks reach it only through that component layer.",
-			"role": "Supplies shared formatting helpers."
+			"summary": "A tiny shared helper module for composing CSS class names.\n\nExports cn from lib/utils.ts for UI components to merge classes safely.\n\nPure library with no runtime of its own.\n\nUsed by the UI Kit.",
+			"role": "Supplies class name helpers."
 		},
 		"folder:lib": {
 			"name": "Shared Utils",
 			"kind": "library",
-			"summary": "A pure helper module for small reusable functions. It is the place for class name merging and other generic formatting utilities.\n\nExports cn for joining class names, which the component layer uses for styling composition. It is a simple support module with no UI of its own.\n\nPure library with no runtime of its own.\n\nFeeds UI Kit. The app and hooks reach it only through that component layer.",
-			"role": "Supplies shared formatting helpers."
+			"summary": "A tiny shared helper module for composing CSS class names.\n\nExports cn from lib/utils.ts for UI components to merge classes safely.\n\nPure library with no runtime of its own.\n\nUsed by the UI Kit.",
+			"role": "Supplies class name helpers."
 		},
 		"src/components": {
 			"name": "Panorama Viewer",
 			"kind": "ui",
-			"summary": "A client side React wrapper around an imperative panorama viewer. It adapts props and browser globals to a viewer that is managed outside normal React rendering.\n\nDefines PanoramaViewerProps, PanoramaViewer, and an initViewer method for wiring the scene up. The game page uses it to show the core visual experience.\n\nRuns in the browser after mount.\n\nUsed by Game Shell. It likely depends on a browser global viewer API.",
-			"role": "Embeds and initializes the panorama scene."
+			"summary": "A set of interactive React feature components for choosing and viewing places.\n\nDefines Explore, PlacePicker, PanoramaViewer, Splash, and motion permission handling for the app experience.\n\nRuns in the browser as interactive client components.\n\nBuilds on Place Data and Geo Motion Library, and is used by the App Shell.",
+			"role": "Coordinates place browsing and panorama flow."
 		},
 		"folder:src/components": {
 			"name": "Panorama Viewer",
 			"kind": "ui",
-			"summary": "A client side React wrapper around an imperative panorama viewer. It adapts props and browser globals to a viewer that is managed outside normal React rendering.\n\nDefines PanoramaViewerProps, PanoramaViewer, and an initViewer method for wiring the scene up. The game page uses it to show the core visual experience.\n\nRuns in the browser after mount.\n\nUsed by Game Shell. It likely depends on a browser global viewer API.",
-			"role": "Embeds and initializes the panorama scene."
+			"summary": "A set of interactive React feature components for choosing and viewing places.\n\nDefines Explore, PlacePicker, PanoramaViewer, Splash, and motion permission handling for the app experience.\n\nRuns in the browser as interactive client components.\n\nBuilds on Place Data and Geo Motion Library, and is used by the App Shell.",
+			"role": "Coordinates place browsing and panorama flow."
 		},
 		"src/lib": {
 			"name": "Game Formatting Utils",
 			"kind": "library",
-			"summary": "A pure utility module with helper functions for transforming values into user friendly text. It keeps common formatting and randomization logic away from the page code.\n\nExports shuffleArray, formatDistance, formatScore, formatYear, formatYearDiff, and cn. The app page uses these helpers for score display, distance text, year formatting, and shuffling.\n\nPure library with no runtime of its own.\n\nUsed by Game Shell. It shares the cn helper with the UI Kit.",
-			"role": "Provides scoring and display helpers."
+			"summary": "A utility module for geographic math, device motion, stitching, and formatting.\n\nImplements haversineKm, nearestPlace, getPosition, watchHeading, stitchEquirect, canvasToBlob, resizeBlob, and display formatters.\n\nPure library with browser and canvas helpers.\n\nBuilds on Place Data and feeds the App Shell and Explore UI.",
+			"role": "Computes motion and panorama helpers."
 		},
 		"folder:src/lib": {
 			"name": "Game Formatting Utils",
 			"kind": "library",
-			"summary": "A pure utility module with helper functions for transforming values into user friendly text. It keeps common formatting and randomization logic away from the page code.\n\nExports shuffleArray, formatDistance, formatScore, formatYear, formatYearDiff, and cn. The app page uses these helpers for score display, distance text, year formatting, and shuffling.\n\nPure library with no runtime of its own.\n\nUsed by Game Shell. It shares the cn helper with the UI Kit.",
-			"role": "Provides scoring and display helpers."
+			"summary": "A utility module for geographic math, device motion, stitching, and formatting.\n\nImplements haversineKm, nearestPlace, getPosition, watchHeading, stitchEquirect, canvasToBlob, resizeBlob, and display formatters.\n\nPure library with browser and canvas helpers.\n\nBuilds on Place Data and feeds the App Shell and Explore UI.",
+			"role": "Computes motion and panorama helpers."
 		},
 		"src/data": {
 			"name": "Places Catalog",
 			"kind": "datastore",
-			"summary": "A static content module that models places and their trivia fragments. It is structured as data types plus a list of records for the rest of the app to read.\n\nDefines TidbitKind, Tidbit, Place, and the places array. Other features can import this content to drive questions, hints, or place details.\n\nBuild time data module.\n\nCan feed Game Shell or future features. Nothing in the provided symbols depends on it directly.",
-			"role": "Stores place entries and tidbits."
+			"summary": "A static data model for named places and their tidbits.\n\nExports Place, Tidbit, TidbitKind, and the places collection consumed throughout the app.\n\nBuild time data module.\n\nRead by Explore UI, Geo Motion Library, and App Shell.",
+			"role": "Stores the place catalog."
 		},
 		"folder:src/data": {
 			"name": "Places Catalog",
 			"kind": "datastore",
-			"summary": "A static content module that models places and their trivia fragments. It is structured as data types plus a list of records for the rest of the app to read.\n\nDefines TidbitKind, Tidbit, Place, and the places array. Other features can import this content to drive questions, hints, or place details.\n\nBuild time data module.\n\nCan feed Game Shell or future features. Nothing in the provided symbols depends on it directly.",
-			"role": "Stores place entries and tidbits."
+			"summary": "A static data model for named places and their tidbits.\n\nExports Place, Tidbit, TidbitKind, and the places collection consumed throughout the app.\n\nBuild time data module.\n\nRead by Explore UI, Geo Motion Library, and App Shell.",
+			"role": "Stores the place catalog."
+		},
+		"app/api": {
+			"name": "Generate API",
+			"kind": "gateway",
+			"summary": "A server route that accepts POST requests and returns generated output.\n\nSets runtime limits, constrains years with MIN_YEAR and MAX_YEAR, and builds the prompt in route POST.\n\nServerless route executed per request.\n\nStands alone as the app's generation endpoint.",
+			"role": "Handles generation requests."
+		},
+		"folder:app/api": {
+			"name": "Generate API",
+			"kind": "gateway",
+			"summary": "A server route that accepts POST requests and returns generated output.\n\nSets runtime limits, constrains years with MIN_YEAR and MAX_YEAR, and builds the prompt in route POST.\n\nServerless route executed per request.\n\nStands alone as the app's generation endpoint.",
+			"role": "Handles generation requests."
 		}
 	}
 }
