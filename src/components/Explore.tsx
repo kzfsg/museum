@@ -1,15 +1,17 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, BookOpen, ChevronRight, Compass, History, Rows2, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, History, Rows2, SlidersHorizontal, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
 import { requestMotionPermission } from '@/src/lib/motion'
+import { useAutoMotion } from '@/src/lib/useAutoMotion'
 import type { MotionMode, PannellumViewer } from '@/src/components/PanoramaViewer'
 import { readView, syncViews, type View } from '@/src/lib/viewSync'
 import { ScanMap } from '@/src/components/ScanMap'
 import type { ScanWithUrl } from '@/app/api/scans/route'
+import type { Background } from '@/src/components/ScanReview'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
@@ -23,10 +25,22 @@ interface ExploreProps {
   onPickScan: (scan: ScanWithUrl) => void
   // Start with motion on (permission was already granted earlier in the session).
   autoMotion?: boolean
+  // The user's own scan, developing while they browse this one.
+  background?: Background | null
+  onOpenBackground?: () => void
+  onDismissBackground?: () => void
 }
 
-export function Explore({ place, onBack, onPickScan, autoMotion = false }: ExploreProps) {
-  const [motion, setMotion] = useState(autoMotion)
+export function Explore({
+  place,
+  onBack,
+  onPickScan,
+  autoMotion = false,
+  background,
+  onOpenBackground,
+  onDismissBackground,
+}: ExploreProps) {
+  const [motion, setMotion] = useAutoMotion(autoMotion)
   // Only complain about missing sensors if the user turned motion on themselves.
   const [userAskedForMotion, setUserAskedForMotion] = useState(false)
   const [alignOpen, setAlignOpen] = useState(false)
@@ -150,6 +164,25 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
       )}
 
       <footer className={styles.bottom}>
+        {background?.status === 'developing' && (
+          <p className={styles.waiting} aria-live="polite">
+            your {background.year} is still developing…
+          </p>
+        )}
+        {background?.status === 'ready' && (
+          <button onClick={onOpenBackground} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
+            your {background.year} is ready, view it
+            <ArrowUpRight size={19} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        )}
+        {background?.status === 'failed' && (
+          <p className={styles.hint} role="alert">
+            your {background.year} couldn’t be made: {background.message}{' '}
+            <button onClick={onDismissBackground} className={styles.bare} aria-label="dismiss">
+              <X size={14} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </p>
+        )}
         {motionError && <p className={styles.hint}>{motionError}</p>}
         {motion && motionMode === 'relative' && (
           <p className={styles.hint}>no compass on this device, so the view follows your turns but isn’t tied to north</p>
@@ -193,8 +226,9 @@ export function Explore({ place, onBack, onPickScan, autoMotion = false }: Explo
       </footer>
 
       {/* After the footer so it stacks above it. Hidden while aligning (it would cover the
-          slider) and in split view (it would cover most of the "today" pane on a phone). */}
-      {!alignOpen && !splitShown && (
+          slider), in split view (it would cover most of the "today" pane on a phone), and
+          while the user's own scan is developing (it would cover that status and its button). */}
+      {!alignOpen && !splitShown && !background && (
         <ScanMap
           currentScanId={place.id.startsWith('scan-') ? place.id.slice('scan-'.length) : undefined}
           center={place}

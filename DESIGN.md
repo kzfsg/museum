@@ -92,6 +92,7 @@ The camera, review, and explore screens float the hero's paper and ink over full
 - **Capture guidance.** Bare text normally; an ink pill only for warnings (slow down, tilt). Progress is twelve dots on a paper disc, ink when captured, with an ink hand.
 - **Notes and hints.** Bare ink text with a supporting-tone icon; hints are 13px.
 - **Markers.** Pannellum hotspots are 30px paper dots with an ink center; tooltips are paper pills.
+- **Maps.** Grayscale tiles (no sepia). Saved scans are the same paper dot (26px, 44px tap target) with a paper year label; scans within 20 m share one ink dot carrying the count, which opens a list sheet (panorama strip, year, distance, date). The scan being viewed is an ink ring; "you are here" is a small ink ring drawn under the dots. Maps open at street zoom (18; 17 for the minimap). No map on the landing hero.
 - **Type steps** in the app: 12 (meta), 13 (captions, hints), 14 (pills, body in notices), 15 (CTA, guidance, note), 16 (titles, list items), 26 (sheet title), 44 (scrubber year).
 - **Voice.** Lowercase for app-authored copy; proper names (places, tidbit titles, sources) keep their capitalization.
 

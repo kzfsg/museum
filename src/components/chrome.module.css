@@ -498,3 +498,51 @@ button.primary:hover { transform: translateY(-2px); }
   z-index: 40;
   background: var(--paper);
 }
+
+/* Minimap frame (explore). */
+.minimap {
+  overflow: hidden;
+  border: 1px solid var(--hairline, rgba(32, 33, 30, 0.1));
+  border-radius: 20px;
+  background: #fafaf7;
+  box-shadow: 0 10px 28px -12px rgba(32, 33, 30, 0.45), 0 1px 2px rgba(32, 33, 30, 0.14);
+}
+
+/* Full-screen layer for sheets portaled to <body>. */
+.overlay { z-index: 60; }
+
+/* A saved scan in a list: panorama strip, year, and details. */
+.scanRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 2px;
+  text-align: left;
+  cursor: pointer;
+}
+.scanThumb {
+  flex: none;
+  width: 88px;
+  height: 52px;
+  border-radius: 12px;
+  background-color: var(--paper-sunk);
+  background-size: cover;
+  background-position: center;
+}
+.scanRowText { flex: 1; min-width: 0; }
+.scanRowText > span { display: block; font-size: 18px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.scanRowText small { display: block; margin-top: 2px; color: var(--caption); font-size: 12px; }
+.scanRow svg { flex: none; color: var(--supporting); transition: transform 180ms ease; }
+.scanRow:hover svg { transform: translateX(2px); color: var(--ink); }
+
+/* Shown under "developing…": browse saved scans nearby meanwhile. */
+.nearbyButton { margin-top: 18px; box-shadow: none; }
+
+/* Explore: a scan developing in the background, or ready to view. */
+.waiting {
+  color: var(--on-image, #fafaf7);
+  font-size: 14px;
+  text-shadow: var(--glow);
+}

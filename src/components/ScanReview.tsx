@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, CircleAlert } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, CircleAlert, MapPin } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import { canvasToBlob, frameVfov, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
@@ -9,6 +9,9 @@ import { fitHfov } from '@/src/components/PanoramaViewer'
 import { SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { Tidbit } from '@/src/data/places'
 import type { GenerateResponse } from '@/app/api/generate/route'
+import type { ScanWithUrl } from '@/app/api/scans/route'
+import { ScanListSheet } from '@/src/components/ScanListSheet'
+import { useAutoMotion } from '@/src/lib/useAutoMotion'
 
 const PanoramaViewer = dynamic(
   () => import('@/src/components/PanoramaViewer').then((mod) => mod.PanoramaViewer),
@@ -42,6 +45,13 @@ export interface ScanResult {
   presentUrl?: string
 }
 
+// A generation still running (or just finished) while the user browses
+// nearby scans instead of waiting on the review screen.
+export type Background =
+  | { status: 'developing'; year: number }
+  | { status: 'ready'; year: number; result: ScanResult }
+  | { status: 'failed'; year: number; message: string }
+
 export interface ScanLocation {
   lat: number
   lng: number
@@ -54,12 +64,29 @@ interface ScanReviewProps {
   // Null when location was denied or unavailable; the scan then isn't saved.
   location: ScanLocation | null
   onResult: (result: ScanResult) => void
+  // Called with the error too, so a failure is reported even if the user has
+  // left to browse nearby scans while it was developing.
+  onFailure?: (message: string) => void
+  // Saved scans nearby, to look around while the new one develops.
+  nearby?: ScanWithUrl[]
+  onBrowseNearby?: (scan: ScanWithUrl, year: number) => void
   onRetake: () => void
   // Follow the phone's motion from the start (permission already granted).
   autoMotion?: boolean
 }
 
-export function ScanReview({ frames, location, onResult, onRetake, autoMotion = false }: ScanReviewProps) {
+export function ScanReview({
+  frames,
+  location,
+  onResult,
+  onFailure,
+  nearby = [],
+  onBrowseNearby,
+  onRetake,
+  autoMotion = false,
+}: ScanReviewProps) {
+  const [motion] = useAutoMotion(autoMotion)
+  const [nearbyOpen, setNearbyOpen] = useState(false)
   const [preview, setPreview] = useState<{ url: string; vaov: number; vOffset: number } | null>(null)
   const [year, setYear] = useState(DEFAULT_YEAR)
   const [busy, setBusy] = useState(false)
@@ -129,8 +156,10 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
         presentUrl: URL.createObjectURL(squashed),
       })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'generation failed. check your connection and try again.')
+      const message = e instanceof Error ? e.message : 'generation failed. check your connection and try again.'
+      setError(message)
       setBusy(false)
+      onFailure?.(message)
     }
   }
 
@@ -143,7 +172,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
 
   return (
     <main className={styles.screen}>
-      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} hfov={viewHfov} yaw={startYaw} motion={autoMotion} />}
+      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} hfov={viewHfov} yaw={startYaw} motion={motion} />}
 
       <header className={styles.top}>
         <button onClick={onRetake} disabled={busy} className={styles.bare}>
@@ -189,6 +218,12 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
               <p>developing {year}…</p>
               <small>this can take a minute</small>
               <div className={styles.progress} aria-hidden="true" />
+              {nearby.length > 0 && onBrowseNearby && (
+                <button onClick={() => setNearbyOpen(true)} className={`${styles.pill} ${styles.nearbyButton}`}>
+                  <MapPin size={16} strokeWidth={1.75} aria-hidden="true" />
+                  look around nearby while you wait · {nearby.length}
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -234,6 +269,15 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
           )}
         </section>
       </div>
+      {nearbyOpen && onBrowseNearby && (
+        <ScanListSheet
+          title="nearby scans"
+          scans={nearby}
+          here={location}
+          onPick={(scan) => onBrowseNearby(scan, year)}
+          onClose={() => setNearbyOpen(false)}
+        />
+      )}
     </main>
   )
 }
