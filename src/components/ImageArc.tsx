@@ -16,8 +16,7 @@ import {
   WebGLRenderer,
 } from "three";
 // Copied from overlay-site/components/image-arc.tsx.
-// Original projection, geometry, shaders and motion are preserved.
-// The host CSS can configure overlap without replacing the ribbon implementation.
+// Original projection, shaders and motion are preserved; overlap is reduced.
 // Integration changes: local diptychs, paired assignment, load/cleanup guards.
 const PHOTOS = ['liberty', 'times-square', 'brooklyn'] as const;
 type PhotoId = typeof PHOTOS[number];
@@ -56,10 +55,8 @@ const MAX_POOL = 64;
 const FOCAL_MIN_U = 64;
 const FOCAL_PER_HALF = 1.4;
 
-const overlapAt = (s: number): number => {
-  const t = Math.min(1, s);
-  return 0.56 - 0.7 * t * (1 - t) + 0.1 * t;
-};
+// Leave approximately 85% of each photograph visible along the ribbon.
+const PHOTO_OVERLAP = 0.15;
 
 const yawAt = (s: number): number =>
   TILT * (1 - Math.pow(1 - Math.min(s, 1), 1.6));
@@ -75,19 +72,26 @@ interface Geometry {
 
 const LUT_N = 4096;
 
-function solveGeometry(halfU: number, heroU: number, focalU: number, overlap = overlapAt): Geometry {
+function solveGeometry(halfU: number, heroU: number, focalU: number): Geometry {
   const target = Math.min(EXIT_HEIGHT * heroU, EXIT_WIDTH * halfU);
   const h0 = Math.min(SEAM_HEIGHT * heroU, SEAM_MAX * target);
   const growth = target / h0;
   const sizeAt = (s: number): number => h0 * Math.pow(growth, s);
-  const widthAt = (s: number): number =>
-    sizeAt(s) * ASPECT * Math.cos(yawAt(s));
+  const widthAt = (s: number): number => {
+    const size = sizeAt(s);
+    const yaw = yawAt(s);
+    // A shared perspective camera makes outward-turned cards wider than
+    // size * cos(yaw). Include that off-axis width when spacing photographs.
+    const screenX = halfU * (size - h0) / (target - h0);
+    const perspective = screenX / focalU * Math.sin(yaw);
+    return size * ASPECT * (Math.cos(yaw) + perspective);
+  };
 
   const N1 = 1024;
   let cover = 0;
   for (let i = 0; i < N1; i++) {
     const s = (i + 0.5) / N1;
-    cover += widthAt(s) * (1 - overlap(s));
+    cover += widthAt(s) * (1 - PHOTO_OVERLAP);
   }
   cover /= N1;
 
@@ -117,7 +121,7 @@ function solveGeometry(halfU: number, heroU: number, focalU: number, overlap = o
   let ax = 0;
   for (let i = 1; i <= LUT_N; i++) {
     const s = (i - 0.5) * ds;
-    ax += density * widthAt(s) * (1 - overlap(s)) * ds;
+    ax += density * widthAt(s) * (1 - PHOTO_OVERLAP) * ds;
     lut[i] = ax;
   }
   const axAt = (s: number): number => {
@@ -325,11 +329,7 @@ function createRibbon(
     u = stageRect.height / STAGE_U;
     const halfU = width / 2 / u;
     focalU = Math.max(FOCAL_MIN_U, halfU * FOCAL_PER_HALF);
-    // CSS is the customization surface; absent a value, use the original asset.
-    const overlapValue = getComputedStyle(host).getPropertyValue('--photo-overlap').trim();
-    const overlap = Number(overlapValue);
-    geo = solveGeometry(halfU, height / u, focalU,
-      overlapValue !== '' && Number.isFinite(overlap) ? () => overlap : overlapAt);
+    geo = solveGeometry(halfU, height / u, focalU);
 
     for (const card of cards) {
       card.mesh.visible = card.index < geo.pool;
