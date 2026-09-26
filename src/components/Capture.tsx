@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { angleDiff, watchHeading } from '@/src/lib/motion'
+import { angleDiff, watchOrientation, type Orientation } from '@/src/lib/motion'
+import { canCapture, guide, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
 
-const SLOT_COUNT = 12
+const SLOT_COUNT = SCAN_SLOTS
 const SLOT_STEP = 360 / SLOT_COUNT
 // How close to a slot's heading the phone must be for it to auto-capture.
 const CAPTURE_TOLERANCE_DEG = 6
@@ -22,7 +23,10 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   const videoRef = useRef<HTMLVideoElement>(null)
   const framesRef = useRef<Map<number, CapturedFrame>>(new Map())
   const [filled, setFilled] = useState<Set<number>>(new Set())
-  const [heading, setHeading] = useState<number | null>(null)
+  const [reading, setReading] = useState<Orientation | null>(null)
+  // Total rotation so far, to notice a full lap that left gaps.
+  const turnedRef = useRef({ total: 0, last: null as number | null })
+  const heading = reading?.heading ?? null
   const [cameraError, setCameraError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,33 +50,46 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
     }
   }, [])
 
-  function grabFrame(slot: number, frameHeading: number) {
+  function grabFrame(slot: number, frameHeading: number, framePitch: number) {
     const video = videoRef.current
     if (!video || video.videoWidth === 0 || framesRef.current.has(slot)) return
     const canvas = document.createElement('canvas')
     canvas.width = FRAME_WIDTH
     canvas.height = Math.round((FRAME_WIDTH * video.videoHeight) / video.videoWidth)
     canvas.getContext('2d')!.drawImage(video, 0, 0, canvas.width, canvas.height)
-    framesRef.current.set(slot, { heading: frameHeading, image: canvas })
+    framesRef.current.set(slot, { heading: frameHeading, pitch: framePitch, image: canvas })
     setFilled(new Set(framesRef.current.keys()))
   }
 
   useEffect(() => {
-    return watchHeading((deg) => {
-      setHeading(deg)
-      const slot = Math.round(deg / SLOT_STEP) % SLOT_COUNT
-      if (Math.abs(angleDiff(deg, slot * SLOT_STEP)) <= CAPTURE_TOLERANCE_DEG) grabFrame(slot, deg)
+    return watchOrientation((o) => {
+      setReading(o)
+      const turned = turnedRef.current
+      if (turned.last !== null) turned.total += Math.abs(angleDiff(o.heading, turned.last))
+      turned.last = o.heading
+      if (!canCapture(o)) return
+      const slot = Math.round(o.heading / SLOT_STEP) % SLOT_COUNT
+      if (Math.abs(angleDiff(o.heading, slot * SLOT_STEP)) <= CAPTURE_TOLERANCE_DEG) grabFrame(slot, o.heading, o.pitch)
     })
   }, [])
 
   // Without a compass (laptops), each tap captures the next slot in order.
   function manualCapture() {
     const slot = [...Array(SLOT_COUNT).keys()].find((s) => !framesRef.current.has(s))
-    if (slot !== undefined) grabFrame(slot, slot * SLOT_STEP)
+    if (slot !== undefined) grabFrame(slot, slot * SLOT_STEP, 0)
   }
 
   const count = filled.size
   const complete = count === SLOT_COUNT
+  const guidance = guide({
+    hasSensor: reading !== null,
+    speed: reading?.speed ?? 0,
+    pitch: reading?.pitch ?? 0,
+    filled: count,
+    total: SLOT_COUNT,
+    turnedDeg: turnedRef.current.total,
+  })
+  const warning = guidance.status === 'too-fast' || guidance.status === 'tilted'
 
   useEffect(() => {
     if (complete) onDone([...framesRef.current.values()])
@@ -87,7 +104,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         <div className="text-right text-sm">
           <div>{count} / {SLOT_COUNT}</div>
           <div className="text-xs text-muted">
-            {heading === null ? 'No compass — tap to capture' : `Facing ${Math.round(heading)}°`}
+            {heading === null ? 'No motion sensor' : `Facing ${Math.round(heading)}°${reading?.absolute ? '' : ' (no compass)'}`}
           </div>
         </div>
       </header>
@@ -99,8 +116,13 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
           </button>
         )}
         {cameraError && <p className="text-sm text-muted text-center">{cameraError}</p>}
-        <p className="text-sm text-center">Hold your phone upright and turn slowly in a full circle.</p>
-        <HeadingRing filled={filled} heading={heading} />
+        <p
+          className={`rounded-md px-3 py-1.5 text-sm text-center transition-colors ${warning ? 'bg-red-700/90 font-medium' : 'bg-black/40'}`}
+          aria-live="polite"
+        >
+          {guidance.message}
+        </p>
+        <HeadingRing filled={filled} heading={heading} warning={warning} />
         <div className="flex gap-2">
           {heading === null && (
             <button onClick={manualCapture} className="rounded-md bg-primary px-4 py-2 text-sm">
@@ -120,7 +142,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
   )
 }
 
-function HeadingRing({ filled, heading }: { filled: Set<number>; heading: number | null }) {
+function HeadingRing({ filled, heading, warning }: { filled: Set<number>; heading: number | null; warning: boolean }) {
   const r = 40
   return (
     <svg viewBox="-50 -50 100 100" className="h-28 w-28">
@@ -142,7 +164,7 @@ function HeadingRing({ filled, heading }: { filled: Set<number>; heading: number
           y1={0}
           x2={30 * Math.cos(((heading - 90) * Math.PI) / 180)}
           y2={30 * Math.sin(((heading - 90) * Math.PI) / 180)}
-          className="stroke-white"
+          className={warning ? 'stroke-red-500' : 'stroke-white'}
           strokeWidth={2}
           strokeLinecap="round"
         />

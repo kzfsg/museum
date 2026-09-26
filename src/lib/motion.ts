@@ -32,27 +32,100 @@ export function headingFromEuler(alpha: number, beta: number, gamma: number): nu
 }
 
 export interface Orientation {
-  // Compass heading of the back camera, 0 = north, clockwise.
+  // Heading of the back camera, 0 = north, clockwise (see `absolute`).
   heading: number
   // Degrees above the horizon the camera points (0 when the phone is upright).
   pitch: number
+  // True when `heading` is tied to real north; false when it is only relative
+  // to wherever the phone pointed first (no compass available).
+  absolute: boolean
+  // Smoothed turning speed in degrees per second.
+  speed: number
 }
 
-// Calls `onOrientation` with compass-referenced readings. Returns an unsubscribe
-// function. Never fires on devices without an absolute compass (e.g. laptops).
+export interface OrientationSample {
+  alpha: number
+  beta: number
+  gamma: number
+  // Whether alpha itself is compass-referenced (Android "absolute" events).
+  absolute: boolean
+  // iOS webkitCompassHeading, if present.
+  compass?: number | null
+  // Timestamp in ms.
+  t: number
+}
+
+// Below this turning speed the phone counts as still, so the compass (which lags
+// during turns) is trusted to correct north.
+const STILL_SPEED = 25
+// The compass keeps catching up for a moment after a turn ends, so it is only
+// trusted once the phone has been still this long.
+const COMPASS_SETTLE_MS = 800
+// Fraction of the compass/gyro disagreement corrected per settled reading.
+const COMPASS_BLEND = 0.05
+const SPEED_SMOOTHING = 0.3
+
+// Fuses readings into a heading that is fast (gyro-based alpha) and, when a
+// compass exists, tied to north. iOS alpha is relative to an arbitrary start
+// and webkitCompassHeading lags behind fast turns, so the compass only slowly
+// corrects an offset on top of the gyro heading.
+export class OrientationTracker {
+  private compassOffset: number | null = null
+  private last: { heading: number; t: number } | null = null
+  private speed = 0
+  private stillSince: number | null = null
+  private sawAbsoluteEvent = false
+
+  update(s: OrientationSample): Orientation | null {
+    // Android fires both relative and absolute events; once absolute ones are
+    // seen, ignore the relative ones.
+    if (s.absolute) this.sawAbsoluteEvent = true
+    else if (this.sawAbsoluteEvent) return null
+
+    const raw = headingFromEuler(s.alpha, s.beta, s.gamma)
+    if (!Number.isFinite(raw)) return null
+
+    if (this.last) {
+      const dt = (s.t - this.last.t) / 1000
+      if (dt > 0) {
+        const instant = Math.abs(angleDiff(raw, this.last.heading)) / dt
+        this.speed += (instant - this.speed) * SPEED_SMOOTHING
+      }
+    }
+    this.last = { heading: raw, t: s.t }
+    if (this.speed >= STILL_SPEED) this.stillSince = null
+    else if (this.stillSince === null) this.stillSince = s.t
+    const settled = this.stillSince !== null && s.t - this.stillSince >= COMPASS_SETTLE_MS
+
+    let heading = raw
+    let absolute = s.absolute
+    if (!s.absolute && typeof s.compass === 'number' && s.compass >= 0) {
+      const target = angleDiff(s.compass, raw)
+      if (this.compassOffset === null) this.compassOffset = target
+      else if (settled) this.compassOffset += angleDiff(target, this.compassOffset) * COMPASS_BLEND
+      heading = raw + this.compassOffset
+      absolute = true
+    }
+
+    return { heading: ((heading % 360) + 360) % 360, pitch: Math.max(-85, Math.min(85, s.beta - 90)), absolute, speed: this.speed }
+  }
+}
+
+// Calls `onOrientation` for every usable reading. Returns an unsubscribe
+// function. Never fires on devices without orientation sensors (e.g. laptops).
 export function watchOrientation(onOrientation: (o: Orientation) => void): () => void {
+  const tracker = new OrientationTracker()
   const handle = (e: DeviceOrientationEvent) => {
-    if (e.beta == null) return
-    // beta is 90 when the phone is held upright in portrait.
-    const pitch = Math.max(-85, Math.min(85, e.beta - 90))
-    const ios = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading
-    if (typeof ios === 'number') {
-      onOrientation({ heading: ios, pitch })
-      return
-    }
-    if (e.absolute && e.alpha != null && e.gamma != null) {
-      onOrientation({ heading: headingFromEuler(e.alpha, e.beta, e.gamma), pitch })
-    }
+    if (e.alpha == null || e.beta == null || e.gamma == null) return
+    const reading = tracker.update({
+      alpha: e.alpha,
+      beta: e.beta,
+      gamma: e.gamma,
+      absolute: e.absolute,
+      compass: (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading,
+      t: e.timeStamp,
+    })
+    if (reading) onOrientation(reading)
   }
   // Android Chrome reports compass-referenced values only on the "absolute" event.
   window.addEventListener('deviceorientationabsolute', handle as EventListener)
@@ -61,10 +134,6 @@ export function watchOrientation(onOrientation: (o: Orientation) => void): () =>
     window.removeEventListener('deviceorientationabsolute', handle as EventListener)
     window.removeEventListener('deviceorientation', handle)
   }
-}
-
-export function watchHeading(onHeading: (deg: number) => void): () => void {
-  return watchOrientation((o) => onHeading(o.heading))
 }
 
 // Smallest signed difference a - b in degrees, in [-180, 180).

@@ -23,7 +23,10 @@ Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_R
 - `app/page.tsx` — state machine: `splash -> capture -> review -> explore`, plus `pick` (saved scans
   and sample spots). Location is fetched in the background during capture.
 - `src/components/Capture.tsx` — camera + compass; auto-captures a frame every 30° (tap to capture
-  without a compass). Shows a banner when a saved scan exists nearby.
+  without a compass). Shows a banner when a saved scan exists nearby. Speed/tilt gating and the
+  on-screen guidance live in `src/lib/captureGuide.ts`.
+- `src/lib/motion.ts` — `OrientationTracker` fuses fast gyro heading with the (laggy) iOS compass,
+  which only corrects north once the phone has been still for a moment.
 - `src/lib/stitch.ts` — pastes frames onto an equirectangular canvas by heading. North is the image
   center, so panorama yaw == compass heading everywhere (stitch, tidbits, viewer).
 - `app/api/generate/route.ts` — history lookup -> grounded prompt -> OpenAI image edit -> save.

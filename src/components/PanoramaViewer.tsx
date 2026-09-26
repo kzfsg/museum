@@ -1,25 +1,16 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { angleDiff, toYawRange, watchOrientation, type Orientation } from '@/src/lib/motion'
+import { angleDiff, toYawRange, watchOrientation } from '@/src/lib/motion'
+import { CAMERA_HFOV_DEG } from '@/src/lib/stitch'
 
 interface PannellumViewer {
   destroy: () => void
   on: (event: string, cb: () => void) => void
-  startOrientation: () => void
-  stopOrientation: () => void
-  isOrientationSupported: () => boolean
+  getYaw: () => number
   setYaw: (yaw: number, animated?: number | false) => void
   setPitch: (pitch: number, animated?: number | false) => void
 }
-
-export type MotionMode = 'compass' | 'relative'
-
-// Fraction of the remaining angle closed each frame; lower is smoother but laggier.
-const SMOOTHING = 0.15
-// If no compass reading arrives in this time, fall back to Pannellum's own
-// relative orientation tracking.
-const COMPASS_WAIT_MS = 1500
 
 declare global {
   interface Window {
@@ -27,6 +18,25 @@ declare global {
       viewer: (container: string | HTMLElement, config: Record<string, unknown>) => PannellumViewer
     }
   }
+}
+
+// compass: view heading equals real-world heading. relative: follows turns but
+// isn't tied to north (no compass). unavailable: no motion sensor at all.
+export type MotionMode = 'compass' | 'relative' | 'unavailable'
+
+// Fraction of the remaining angle closed each frame; lower is smoother but laggier.
+const SMOOTHING = 0.2
+// If no orientation reading arrives in this time, the device has no sensor.
+const SENSOR_WAIT_MS = 1500
+// On a portrait phone, show roughly what the camera sees so the panorama feels
+// like looking through the phone rather than a zoomed-out fishbowl.
+const PORTRAIT_HFOV = CAMERA_HFOV_DEG + 8
+const LANDSCAPE_HFOV = 100
+
+// Widest horizontal FOV at which a band `vaov` degrees tall still fills the
+// screen height, so partial panoramas never show empty space above or below.
+export function fitHfov(vaov: number, width: number, height: number): number {
+  return (2 * Math.atan(Math.tan((vaov * Math.PI) / 360) * (width / height)) * 180) / Math.PI
 }
 
 export interface PanoramaHotspot {
@@ -38,12 +48,14 @@ export interface PanoramaHotspot {
 
 interface PanoramaViewerProps {
   src: string
+  // Vertical coverage in degrees; less than 180 for a partial (band) panorama.
+  vaov?: number
   hotspots?: PanoramaHotspot[]
   onHotspotClick?: (id: string) => void
-  // Pan the view by moving the phone. Uses the compass so the panorama's yaw
-  // matches real-world heading, falling back to relative tracking.
+  // Pan the view by moving the phone. Uses the compass when available so the
+  // panorama's yaw matches real-world heading.
   motion?: boolean
-  // Manual correction (degrees) added to the compass heading.
+  // Manual correction (degrees) added to the heading.
   yawOffset?: number
   onMotionMode?: (mode: MotionMode) => void
   // Initial view direction; for scans this equals the compass heading.
@@ -53,6 +65,7 @@ interface PanoramaViewerProps {
 
 export function PanoramaViewer({
   src,
+  vaov = 180,
   hotspots = [],
   onHotspotClick,
   motion = false,
@@ -68,11 +81,13 @@ export function PanoramaViewer({
   onLoadRef.current = onLoad
   const onHotspotClickRef = useRef(onHotspotClick)
   onHotspotClickRef.current = onHotspotClick
-  // Hotspots are read once per panorama; they change together with `src`.
+  // Hotspots, yaw, and vaov are read once per panorama; they change with `src`.
   const hotspotsRef = useRef(hotspots)
   hotspotsRef.current = hotspots
   const yawRef = useRef(yaw)
   yawRef.current = yaw
+  const vaovRef = useRef(vaov)
+  vaovRef.current = vaov
   const yawOffsetRef = useRef(yawOffset)
   yawOffsetRef.current = yawOffset
   const onMotionModeRef = useRef(onMotionMode)
@@ -102,20 +117,30 @@ export function PanoramaViewer({
         viewerRef.current = null
       }
 
+      const portrait = window.innerHeight > window.innerWidth
+      const partial = vaovRef.current < 180
+      const baseHfov = portrait ? PORTRAIT_HFOV : LANDSCAPE_HFOV
+      const maxFit = partial ? fitHfov(vaovRef.current, window.innerWidth, window.innerHeight) : Infinity
+      const hfov = Math.min(baseHfov, maxFit)
       setLoaded(false)
       viewerRef.current = window.pannellum.viewer(containerRef.current, {
         type: 'equirectangular',
         panorama: src,
-        // Explicit so any image aspect (e.g. the model's 3:2) wraps the full sphere.
+        // Explicit so any image aspect (e.g. the model's 3:2) wraps the sphere.
         haov: 360,
-        vaov: 180,
+        vaov: vaovRef.current,
+        // For a partial band, stop the view at its edges instead of showing void.
+        // Pannellum's background check needs explicit pitch limits (otherwise its
+        // hfov becomes NaN and the viewer never loads).
+        avoidShowingBackground: partial,
+        ...(partial && { minPitch: -vaovRef.current / 2, maxPitch: vaovRef.current / 2 }),
         autoLoad: true,
         showControls: false,
         compass: false,
         mouseZoom: true,
-        hfov: 100,
-        minHfov: 50,
-        maxHfov: 120,
+        hfov,
+        minHfov: Math.min(20, hfov),
+        maxHfov: Math.min(portrait ? 90 : 120, maxFit),
         friction: 0.15,
         yaw: yawRef.current,
         pitch: 0,
@@ -151,32 +176,34 @@ export function PanoramaViewer({
     const viewer = viewerRef.current
     if (!viewer || !loaded || !motion) return
 
-    let target: Orientation | null = null
-    let current: Orientation | null = null
-    let usingRelative = false
+    let target: { heading: number; pitch: number } | null = null
+    let current: { heading: number; pitch: number } | null = null
+    // Without a compass, anchor the phone's starting direction to the current
+    // view so turning on doesn't make the view jump.
+    let relativeOffset: number | null = null
     let frame = 0
 
     const unsubscribe = watchOrientation((o) => {
-      if (!target) onMotionModeRef.current?.('compass')
-      target = o
+      if (!target) onMotionModeRef.current?.(o.absolute ? 'compass' : 'relative')
+      if (!o.absolute && relativeOffset === null) relativeOffset = angleDiff(viewer.getYaw(), o.heading)
+      target = { heading: o.absolute ? o.heading : o.heading + (relativeOffset ?? 0), pitch: o.pitch }
     })
-    const fallback = setTimeout(() => {
-      if (target) return
-      usingRelative = true
-      viewer.startOrientation()
-      onMotionModeRef.current?.('relative')
-    }, COMPASS_WAIT_MS)
+    const noSensor = setTimeout(() => {
+      if (!target) onMotionModeRef.current?.('unavailable')
+    }, SENSOR_WAIT_MS)
 
     const tick = () => {
       if (target) {
-        current = current
+        const t = target
+        const c: { heading: number; pitch: number } = current
           ? {
-              heading: current.heading + angleDiff(target.heading, current.heading) * SMOOTHING,
-              pitch: current.pitch + (target.pitch - current.pitch) * SMOOTHING,
+              heading: current.heading + angleDiff(t.heading, current.heading) * SMOOTHING,
+              pitch: current.pitch + (t.pitch - current.pitch) * SMOOTHING,
             }
-          : target
-        viewer.setYaw(toYawRange(current.heading + yawOffsetRef.current), false)
-        viewer.setPitch(current.pitch, false)
+          : t
+        current = c
+        viewer.setYaw(toYawRange(c.heading + yawOffsetRef.current), false)
+        viewer.setPitch(c.pitch, false)
       }
       frame = requestAnimationFrame(tick)
     }
@@ -184,9 +211,8 @@ export function PanoramaViewer({
 
     return () => {
       unsubscribe()
-      clearTimeout(fallback)
+      clearTimeout(noSensor)
       cancelAnimationFrame(frame)
-      if (usingRelative) viewer.stopOrientation()
     }
   }, [motion, loaded])
 

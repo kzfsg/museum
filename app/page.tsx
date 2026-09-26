@@ -25,6 +25,7 @@ function placeFromScan(scan: ScanResult): Place {
     panorama: scan.panoramaUrl,
     startYaw: scan.startYaw,
     tidbits: scan.tidbits,
+    vaov: scan.vaov,
   }
 }
 
@@ -48,10 +49,12 @@ export default function Home() {
   const [frames, setFrames] = useState<CapturedFrame[]>([])
   const [location, setLocation] = useState<ScanLocation | null>(null)
   const [nearbyScans, setNearbyScans] = useState<ScanWithUrl[]>([])
+  // Whether device motion may be used without another tap (iOS asks once per page).
+  const [motionOk, setMotionOk] = useState(false)
 
   async function startScan() {
     // Must run inside the tap for iOS to show the motion permission prompt.
-    await requestMotionPermission()
+    setMotionOk(await requestMotionPermission())
     setLocation(null)
     setNearbyScans([])
     setMode('capture')
@@ -94,6 +97,7 @@ export default function Home() {
         location={location}
         onResult={(scan) => openPlace(placeFromScan(scan))}
         onRetake={() => setMode('capture')}
+        autoMotion={motionOk}
       />
     )
   }
@@ -111,8 +115,14 @@ export default function Home() {
 
   if (mode === 'explore' && place) {
     const fromScan = place.id.startsWith('scan-')
-    return <Explore place={place} onBack={() => setMode(fromScan ? 'splash' : 'pick')} />
+    return <Explore place={place} onBack={() => setMode(fromScan ? 'splash' : 'pick')} autoMotion={motionOk} />
   }
 
-  return <Splash onScan={startScan} onBrowse={() => setMode('pick')} />
+  async function browse() {
+    // Ask here too, so spots open with motion already following the phone.
+    setMotionOk(await requestMotionPermission())
+    setMode('pick')
+  }
+
+  return <Splash onScan={startScan} onBrowse={browse} />
 }

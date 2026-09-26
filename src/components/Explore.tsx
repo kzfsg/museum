@@ -14,10 +14,15 @@ const PanoramaViewer = dynamic(
 interface ExploreProps {
   place: Place
   onBack: () => void
+  // Start with motion on (permission was already granted earlier in the session).
+  autoMotion?: boolean
 }
 
-export function Explore({ place, onBack }: ExploreProps) {
-  const [motion, setMotion] = useState(false)
+export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
+  const [motion, setMotion] = useState(autoMotion)
+  // Only complain about missing sensors if the user turned motion on themselves.
+  const [userAskedForMotion, setUserAskedForMotion] = useState(false)
+  const [alignOpen, setAlignOpen] = useState(false)
   const [motionError, setMotionError] = useState<string | null>(null)
   const [motionMode, setMotionMode] = useState<MotionMode | null>(null)
   const [yawOffset, setYawOffset] = useState(0)
@@ -32,6 +37,7 @@ export function Explore({ place, onBack }: ExploreProps) {
       setMotionMode(null)
       return
     }
+    setUserAskedForMotion(true)
     if (await requestMotionPermission()) {
       setMotionError(null)
       setMotion(true)
@@ -44,11 +50,18 @@ export function Explore({ place, onBack }: ExploreProps) {
     <main className="fixed inset-0">
       <PanoramaViewer
         src={place.panorama}
+        vaov={place.vaov}
         hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
         onHotspotClick={setOpenTidbitId}
         motion={motion}
         yawOffset={yawOffset}
-        onMotionMode={setMotionMode}
+        onMotionMode={(mode) => {
+          setMotionMode(mode)
+          if (mode === 'unavailable') {
+            setMotion(false)
+            if (userAskedForMotion) setMotionError('No motion sensor here. Drag to look around.')
+          }
+        }}
         yaw={place.startYaw}
       />
 
@@ -65,10 +78,10 @@ export function Explore({ place, onBack }: ExploreProps) {
 
       <footer className="absolute bottom-0 inset-x-0 z-20 p-4 space-y-2">
         {motionError && <p className="text-xs text-muted text-center">{motionError}</p>}
-        {motionMode === 'relative' && (
+        {motion && motionMode === 'relative' && (
           <p className="text-xs text-muted text-center">No compass on this device, so the view follows your turns but isn’t tied to north.</p>
         )}
-        {motionMode === 'compass' && (
+        {motion && motionMode === 'compass' && alignOpen && (
           <label className="flex items-center gap-3 rounded-md bg-surface/80 px-3 py-2 text-xs text-muted">
             <span className="shrink-0">Line it up</span>
             <input
@@ -86,6 +99,14 @@ export function Explore({ place, onBack }: ExploreProps) {
           <button onClick={toggleMotion} className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm">
             {!motion ? 'Use motion' : motionMode === 'compass' ? 'Compass on' : 'Motion on'}
           </button>
+          {motion && motionMode === 'compass' && (
+            <button
+              onClick={() => setAlignOpen((open) => !open)}
+              className="rounded-md border border-border bg-surface/80 px-4 py-2 text-sm"
+            >
+              {alignOpen ? 'Done aligning' : 'Align'}
+            </button>
+          )}
           {place.tidbits.length > 0 && (
             <button
               onClick={() => setListOpen(true)}
