@@ -91,6 +91,11 @@ export default function Home() {
     setMode('review')
   }, [])
 
+  // Call from a tap: iOS only shows the motion prompt inside one.
+  async function askForMotion() {
+    if (await requestMotionPermission()) setMotionOk(true)
+  }
+
   function openPlace(next: Place) {
     setPlace(next)
     setMode('explore')
@@ -135,7 +140,10 @@ export default function Home() {
     return (
       <PlacePicker
         places={places}
-        onPick={openPlace}
+        onPick={async (next) => {
+          await askForMotion()
+          openPlace(next)
+        }}
         onPickScan={(scan) => openPlace(placeFromSaved(scan))}
         onBack={() => setMode('splash')}
       />
@@ -167,5 +175,8 @@ export default function Home() {
     )
   }
 
-  return <Splash onScan={startScan} onDemo={() => openPlace(timesSquareDemo)} />
+  return <Splash onScan={startScan} onDemo={async () => {
+        await askForMotion()
+        openPlace(timesSquareDemo)
+      }} />
 }

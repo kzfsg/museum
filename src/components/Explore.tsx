@@ -19,7 +19,7 @@ const PanoramaViewer = dynamic(
   { ssr: false }
 )
 
-const TIDBITS_SEEN = 'museum.tidbitsSeen'
+const SPLIT_HINT_SEEN = 'museum.splitHintSeen'
 
 interface ExploreProps {
   place: Place
@@ -43,32 +43,26 @@ export function Explore({
   onOpenBackground,
   onDismissBackground,
 }: ExploreProps) {
-  const [motion, setMotion] = useAutoMotion(autoMotion)
-  // Only complain about missing sensors if the user turned motion on themselves.
-  const [userAskedForMotion, setUserAskedForMotion] = useState(false)
+  const [motion, setMotion, motionChecked] = useAutoMotion(autoMotion)
+  // Motion is how you look around, so we keep asking until it's on. Only a
+  // device with no sensor at all (a laptop) is let through to drag instead.
+  const [noSensor, setNoSensor] = useState(false)
+  const [motionDenied, setMotionDenied] = useState(false)
   const [alignOpen, setAlignOpen] = useState(false)
   const [noteDismissed, setNoteDismissed] = useState(false)
-  const [motionError, setMotionError] = useState<string | null>(null)
   const [motionMode, setMotionMode] = useState<MotionMode | null>(null)
   const [yawOffset, setYawOffset] = useState(0)
   const [openTidbitId, setOpenTidbitId] = useState<string | null>(null)
   const [listOpen, setListOpen] = useState(false)
-  const [split, setSplit] = useState(false)
+  const [split, setSplit] = useState(true)
   const [mapOpen, setMapOpen] = useState(false)
-  // The tidbits button pulses until the user has opened a tidbit once (ever, on this device).
-  const [tidbitsSeen, setTidbitsSeen] = useState(true)
+  // Explains the compare button until it's first used (ever, on this device).
+  const [splitHintSeen, setSplitHintSeen] = useState(true)
   useEffect(() => {
     try {
-      setTidbitsSeen(localStorage.getItem(TIDBITS_SEEN) === '1')
+      setSplitHintSeen(localStorage.getItem(SPLIT_HINT_SEEN) === '1')
     } catch {}
   }, [])
-  useEffect(() => {
-    if (tidbitsSeen || !(listOpen || openTidbitId)) return
-    setTidbitsSeen(true)
-    try {
-      localStorage.setItem(TIDBITS_SEEN, '1')
-    } catch {}
-  }, [tidbitsSeen, listOpen, openTidbitId])
   const scans = useSavedScans()
   // Where the view pointed when the layout last changed, so switching keeps it.
   const [resume, setResume] = useState<View | null>(null)
@@ -95,23 +89,19 @@ export function Explore({
   function toggleSplit() {
     if (thenViewer.current) setResume(readView(thenViewer.current))
     setSplit((on) => !on)
+    setSplitHintSeen(true)
+    try {
+      localStorage.setItem(SPLIT_HINT_SEEN, '1')
+    } catch {}
   }
 
   const openTidbit = place.tidbits.find((t) => t.id === openTidbitId)
 
-  async function toggleMotion() {
-    if (motion) {
-      setMotion(false)
-      setMotionMode(null)
-      return
-    }
-    setUserAskedForMotion(true)
-    if (await requestMotionPermission()) {
-      setMotionError(null)
-      setMotion(true)
-    } else {
-      setMotionError('motion isn’t available here. drag to look around.')
-    }
+  // Must run inside the tap for iOS to show the prompt.
+  async function askForMotion() {
+    const ok = await requestMotionPermission()
+    setMotionDenied(!ok)
+    if (ok) setMotion(true)
   }
 
   // The past, with hotspots and phone steering; full screen or the top pane.
@@ -129,7 +119,7 @@ export function Explore({
         setMotionMode(mode)
         if (mode === 'unavailable') {
           setMotion(false)
-          if (userAskedForMotion) setMotionError('no motion sensor here. drag to look around.')
+          setNoSensor(true)
         }
       }}
       yaw={resume?.yaw ?? place.startYaw}
@@ -227,7 +217,11 @@ export function Explore({
           </p>
         )}
         {guide.error && <p className={styles.hint}>{guide.error}</p>}
-        {motionError && <p className={styles.hint}>{motionError}</p>}
+        {splitShown && !splitHintSeen && (
+          <p className={styles.hint}>
+            the past is on top, today below. tap <Rows2 size={13} strokeWidth={1.75} aria-label="compare" className="inline align-[-2px]" /> to see the past full screen
+          </p>
+        )}
         {motion && motionMode === 'relative' && (
           <p className={styles.hint}>no compass on this device, so the view follows your turns but isn’t tied to north</p>
         )}
@@ -239,15 +233,6 @@ export function Explore({
           </label>
         )}
         <div className={styles.row}>
-          <button
-            onClick={toggleMotion}
-            aria-pressed={motion}
-            aria-label={!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
-            title={!motion ? 'use motion' : motionMode === 'compass' ? 'compass on' : 'motion on'}
-            className={`${styles.pill} ${styles.round} ${motion ? styles.ink : ''}`}
-          >
-            <Compass size={17} strokeWidth={1.75} aria-hidden="true" />
-          </button>
           {motion && motionMode === 'compass' && (
             <button
               onClick={() => setAlignOpen((open) => !open)}
@@ -296,14 +281,12 @@ export function Explore({
               onClick={() => setListOpen(true)}
               aria-label={`tidbits (${place.tidbits.length})`}
               title={`tidbits (${place.tidbits.length})`}
-              className={`${styles.pill} ${styles.round} ${tidbitsSeen ? '' : `${styles.ink} ${styles.beckon}`}`}
+              className={`${styles.pill} ${styles.round}`}
             >
               <BookOpen size={17} strokeWidth={1.75} aria-hidden="true" />
-              {!tidbitsSeen && (
-                <span className={styles.badge} aria-hidden="true">
-                  {place.tidbits.length}
-                </span>
-              )}
+              <span className={styles.badge} aria-hidden="true">
+                {place.tidbits.length}
+              </span>
             </button>
           )}
           {scans && scans.length > 0 && !splitShown && (
@@ -319,6 +302,25 @@ export function Explore({
           )}
         </div>
       </footer>
+
+      {motionChecked && !motion && !noSensor && (
+        <div className={styles.scrim}>
+          <section className={styles.sheet} role="dialog" aria-modal="true" aria-label="turn on motion">
+            <div className={styles.stack}>
+              <h3 className={styles.tidbitTitle}>turn on motion</h3>
+              <p className={styles.tidbitBody}>
+                {motionDenied
+                  ? 'motion is blocked. quit and reopen your browser, come back, and tap allow when asked.'
+                  : 'point your phone around to look through time. tap below, then allow motion.'}
+              </p>
+            </div>
+            <button onClick={askForMotion} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
+              {motionDenied ? 'try again' : 'allow motion'}
+              <Compass size={18} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </section>
+        </div>
+      )}
 
       {(openTidbit || listOpen) && (
         <div

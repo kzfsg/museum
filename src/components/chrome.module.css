@@ -458,24 +458,8 @@ button.primary:hover { transform: translateY(-2px); }
 .listItem svg { flex: none; color: var(--supporting); transition: transform 180ms ease; }
 .listItem:hover svg { transform: translateX(2px); color: var(--ink); }
 
-/* Tidbits button until it's first opened: filled, pulsing rings, and a count. */
-.beckon {
-  position: relative;
-  overflow: visible;
-  animation: beckon-bob 1.6s ease-in-out infinite;
-}
-.beckon::before,
-.beckon::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  border: 2px solid var(--paper);
-  box-shadow: 0 0 0 1px rgba(32, 33, 30, 0.35);
-  pointer-events: none;
-  animation: beckon-ring 1.6s ease-out infinite;
-}
-.beckon::after { animation-delay: 0.8s; }
+/* How many tidbits this place has, on the tidbits button. */
+.round:has(.badge) { position: relative; overflow: visible; }
 .badge {
   position: absolute;
   top: -6px;
@@ -493,18 +477,7 @@ button.primary:hover { transform: translateY(-2px); }
   font-weight: 600;
   line-height: 1;
 }
-@keyframes beckon-ring {
-  from { transform: scale(1); opacity: 0.8; }
-  to { transform: scale(1.9); opacity: 0; }
-}
-@keyframes beckon-bob {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.12); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .beckon, .beckon::before, .beckon::after { animation: none; }
-  .beckon::before, .beckon::after { opacity: 0; }
   .sheet, .noteCard { animation: none; }
   .progress::after { animation: none; width: 100%; opacity: 0.3; }
   button.pill, .guide, .ringDot { transition: none; }
