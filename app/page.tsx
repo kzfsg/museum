@@ -54,7 +54,6 @@ export default function Home() {
   const [place, setPlace] = useState<Place | null>(null)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
   const [location, setLocation] = useState<ScanLocation | null>(null)
-  const [nearbyScans, setNearbyScans] = useState<ScanWithUrl[]>([])
   // Whether device motion may be used without another tap (iOS asks once per page).
   const [motionOk, setMotionOk] = useState(false)
 
@@ -62,16 +61,10 @@ export default function Home() {
     // Must run inside the tap for iOS to show the motion permission prompt.
     setMotionOk(await requestMotionPermission())
     setLocation(null)
-    setNearbyScans([])
     setMode('capture')
     // Location is looked up while the user scans; it's optional.
     getPosition()
-      .then(async ({ coords }) => {
-        const here = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }
-        setLocation(here)
-        const res = await fetch(`/api/scans?lat=${here.lat}&lng=${here.lng}`)
-        if (res.ok) setNearbyScans(((await res.json()) as { scans: ScanWithUrl[] }).scans)
-      })
+      .then(({ coords }) => setLocation({ lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }))
       .catch(() => {})
   }
 
@@ -90,8 +83,6 @@ export default function Home() {
       <Capture
         onDone={finishCapture}
         onCancel={() => setMode('splash')}
-        nearbyCount={nearbyScans.length}
-        onOpenNearby={() => openPlace(placeFromSaved(nearbyScans[0]))}
         here={location}
         onPickScan={(scan) => openPlace(placeFromSaved(scan))}
       />
