@@ -136,14 +136,14 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
       />
 
       <header className={styles.top}>
-        <button onClick={onCancel} className={`${styles.pill} ${styles.round}`} aria-label="cancel scan">
+        <button onClick={onCancel} className={styles.bare} aria-label="cancel scan">
           <X size={18} strokeWidth={1.75} aria-hidden="true" />
         </button>
-        <span className={`${styles.pill} ${styles.wordmark}`}>
+        <span className={styles.wordmark}>
           time machine
           <History size={16} strokeWidth={1.75} aria-hidden="true" />
         </span>
-        <div className={`${styles.pill} ${styles.meta}`}>
+        <div className={styles.meta}>
           <span className={styles.metaMain}>
             {count} / {SLOT_COUNT}
           </span>
@@ -153,7 +153,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         </div>
       </header>
 
-      <div className={styles.bottom}>
+      <div className={`${styles.bottom} ${styles.bottomFade}`}>
         {nearbyCount > 0 && onOpenNearby && (
           <button onClick={onOpenNearby} className={`${styles.pill} ${styles.wrap}`}>
             this spot has already been scanned, view it now
@@ -161,7 +161,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
           </button>
         )}
         {cameraError && <p className={styles.hint}>{cameraError}</p>}
-        <p className={`${styles.pill} ${styles.wrap} ${styles.guide} ${warning ? styles.guideWarn : ''}`} aria-live="polite">
+        <p className={warning ? `${styles.pill} ${styles.wrap} ${styles.guide} ${styles.guideWarn}` : styles.guideText} aria-live="polite">
           {guidance.message}
         </p>
         <HeadingRing filled={filled} heading={reading?.rawHeading ?? null} />

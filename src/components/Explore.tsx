@@ -71,10 +71,10 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
       />
 
       <header className={styles.top}>
-        <button onClick={onBack} className={`${styles.pill} ${styles.round}`} aria-label="back">
+        <button onClick={onBack} className={styles.bare} aria-label="back">
           <ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" />
         </button>
-        <div className={`${styles.pill} ${styles.meta}`}>
+        <div className={styles.meta}>
           <span className={styles.title}>{place.name}</span>
           <span className={styles.metaSub}>
             {place.neighborhood} · {place.year}
@@ -87,7 +87,7 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
         <div className={styles.noteCard} role="status">
           <History size={18} strokeWidth={1.75} className={styles.noticeIcon} aria-hidden="true" />
           <p>{place.note}</p>
-          <button onClick={() => setNoteDismissed(true)} className={`${styles.pill} ${styles.round} ${styles.noteClose}`} aria-label="hide note">
+          <button onClick={() => setNoteDismissed(true)} className={`${styles.bare} ${styles.noteClose}`} aria-label="hide note">
             <X size={15} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>

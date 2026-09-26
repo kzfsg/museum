@@ -85,11 +85,12 @@ Photographs have gently rounded corners. The CTA is a dark pill with a matching 
 
 The camera, review, and explore screens float the hero's paper and ink over full-bleed camera and panorama imagery (`src/components/chrome.module.css`). The imagery is the surface; chrome is opaque paper pills and sheets with a soft offset shadow for lift, never glass or blur. There is no grain, vignette, serif, or copper: the past-ness comes from the generated image itself.
 
-- **Pills.** 40px tall, pill radius, paper fill, hairline border, 14px lowercase copy. Icon-only pills are 40px circles. A pill carrying a sentence wraps (22px radius) instead of overflowing.
+- **Bare text and logo.** Top bars (wordmark, counters, titles, back/close icons) and plain messages (capture guidance, hints, the site note) carry no bubble: ink text sits on a soft paper fade (top bar; the capture screen's bottom too) with a faint paper glow behind the letters for busy imagery.
+- **Pills are for controls only.** 40px tall, pill radius, paper fill, hairline border, 14px lowercase copy. A pill carrying a sentence wraps (22px radius) instead of overflowing.
 - **One ink action per screen.** The hero CTA: ink fill, 52px, 15px, arrow icon ("see it in 1920", "capture"). Toggled-on controls (motion) also turn ink.
 - **Sheets.** Paper, 28px radius, rising 14px with an exponential ease-out on entry. The review sheet holds notices, a paper-sunk segmented year control (selected segment ink), and the CTA. Tidbits open in the same sheet over a 32% ink scrim; the title is 26px/500 in normal case, with kind and source in a caption line below the text, never as an eyebrow above it.
-- **Capture guidance.** A paper pill that inverts to ink for warnings (slow down, tilt); progress is twelve dots on a paper disc, ink when captured, with an ink hand.
-- **Notes and hints.** Paper cards (20px radius) with a supporting-tone icon; hints are 13px supporting text on paper.
+- **Capture guidance.** Bare text normally; an ink pill only for warnings (slow down, tilt). Progress is twelve dots on a paper disc, ink when captured, with an ink hand.
+- **Notes and hints.** Bare ink text with a supporting-tone icon; hints are 13px.
 - **Markers.** Pannellum hotspots are 30px paper dots with an ink center; tooltips are paper pills.
 - **Type steps** in the app: 12 (meta), 13 (captions, hints), 14 (pills, body in notices), 15 (CTA, guidance, note), 16 (titles, list items), 26 (sheet title).
 - **Voice.** Lowercase for app-authored copy; proper names (places, tidbit titles, sources) keep their capitalization.

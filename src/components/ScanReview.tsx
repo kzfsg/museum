@@ -128,11 +128,11 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
       {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} hfov={viewHfov} yaw={startYaw} motion={autoMotion} />}
 
       <header className={styles.top}>
-        <button onClick={onRetake} disabled={busy} className={styles.pill}>
+        <button onClick={onRetake} disabled={busy} className={styles.bare}>
           <ArrowLeft size={17} strokeWidth={1.75} aria-hidden="true" />
           retake
         </button>
-        <div className={`${styles.pill} ${styles.meta}`}>
+        <div className={styles.meta}>
           <span className={styles.metaMain}>
             {frames.length} photos · lens {Math.round(lens.hfov)}°{lens.measured ? '' : ' (est.)'}
           </span>

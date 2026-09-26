@@ -12,6 +12,8 @@
   --hairline: rgba(32, 33, 30, 0.1);
   --focus: #42644c;
   --lift: 0 10px 28px -12px rgba(32, 33, 30, 0.45), 0 1px 2px rgba(32, 33, 30, 0.14);
+  /* Keeps bare ink text legible over dark or busy imagery without a bubble. */
+  --glow: 0 0 2px rgba(250, 250, 247, 0.95), 0 0 12px rgba(250, 250, 247, 0.9), 0 0 26px rgba(250, 250, 247, 0.7);
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   position: fixed;
   inset: 0;
@@ -48,7 +50,15 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding-top: max(16px, env(safe-area-inset-top));
+  padding-top: max(12px, env(safe-area-inset-top));
+  padding-bottom: 64px;
+  /* A paper fade instead of bubbles behind the bar's text and logo. */
+  background: linear-gradient(to bottom, rgba(250, 250, 247, 0.92), rgba(250, 250, 247, 0.75) 55%, rgba(250, 250, 247, 0));
+}
+/* The same fade from below, for bare text near the bottom (capture guidance). */
+.bottomFade {
+  padding-top: 72px;
+  background: linear-gradient(to top, rgba(250, 250, 247, 0.9), rgba(250, 250, 247, 0.72) 55%, rgba(250, 250, 247, 0));
 }
 .bottom {
   bottom: 0;
@@ -100,7 +110,26 @@ button.ink:hover { background: var(--hover-ink); }
 }
 button.primary:hover { transform: translateY(-2px); }
 
-/* Centered on the screen, not between the bar's unequal side pills. */
+/* Bare text or icon controls in the top bar: no bubble. */
+.bare {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--ink);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  text-shadow: var(--glow);
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+.bare:hover { opacity: 0.65; }
+.bare:disabled { opacity: 0.4; cursor: default; }
+.bare svg { filter: drop-shadow(0 0 6px rgba(250, 250, 247, 0.9)); }
+
+/* Centered on the screen, not between the bar's unequal side items. */
 .top > .wordmark {
   position: absolute;
   left: 50%;
@@ -110,6 +139,8 @@ button.primary:hover { transform: translateY(-2px); }
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 40px;
+  text-shadow: var(--glow);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.035em;
@@ -119,12 +150,12 @@ button.primary:hover { transform: translateY(-2px); }
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
-  padding: 8px 16px;
-  border-radius: 20px;
+  padding-top: 4px;
   text-align: right;
+  text-shadow: var(--glow);
 }
 .metaMain { font-size: 14px; font-variant-numeric: tabular-nums; }
-.metaSub { font-size: 12px; color: var(--supporting); }
+.metaSub { font-size: 12px; color: #4f514a; }
 .title {
   font-size: 16px;
   font-weight: 500;
@@ -141,7 +172,16 @@ button.primary:hover { transform: translateY(-2px); }
   text-wrap: balance;
 }
 
-/* Capture guidance */
+/* Capture guidance: bare text normally, an ink pill only for warnings. */
+.guideText {
+  max-width: 320px;
+  font-size: 16px;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: var(--glow);
+}
 .guide {
   min-height: 44px;
   padding-inline: 20px;
@@ -258,37 +298,32 @@ button.primary:hover { transform: translateY(-2px); }
 /* Explore */
 .noteCard {
   position: absolute;
-  top: calc(max(16px, env(safe-area-inset-top)) + 64px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 56px);
   inset-inline: 16px;
   z-index: 20;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   max-width: 480px;
   margin-inline: auto;
-  padding: 14px 10px 14px 16px;
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  background: var(--paper);
-  box-shadow: var(--lift);
   font-size: 15px;
   line-height: 1.45;
   letter-spacing: -0.01em;
+  text-shadow: var(--glow);
   animation: rise 520ms var(--ease);
 }
+.noteCard svg { flex: none; margin-top: 2px; filter: drop-shadow(0 0 6px rgba(250, 250, 247, 0.9)); }
 .noteCard p { flex: 1; padding-top: 1px; }
-.noteClose { width: 32px; min-height: 32px; box-shadow: none; }
+.noteClose { min-width: 28px; min-height: 28px; margin-top: -4px; }
 .stack > * + * { margin-top: 12px; }
 .hint {
-  max-width: 340px;
-  padding: 8px 14px;
-  border-radius: 16px;
-  background: var(--paper);
-  color: var(--supporting);
+  max-width: 320px;
+  color: var(--ink);
   font-size: 13px;
   line-height: 1.45;
   text-align: center;
-  box-shadow: var(--lift);
+  text-wrap: balance;
+  text-shadow: var(--glow);
 }
 .align {
   display: flex;
