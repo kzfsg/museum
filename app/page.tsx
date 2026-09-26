@@ -7,6 +7,7 @@ import { Explore } from '@/src/components/Explore'
 import { Capture } from '@/src/components/Capture'
 import { ScanReview, type Background, type ScanLocation, type ScanResult } from '@/src/components/ScanReview'
 import { places, type Place } from '@/src/data/places'
+import { timesSquareDemo } from '@/src/data/timesSquareDemo'
 import { getPosition } from '@/src/lib/geo'
 import { requestMotionPermission } from '@/src/lib/motion'
 import type { CapturedFrame } from '@/src/lib/stitch'
@@ -148,7 +149,7 @@ export default function Home() {
         // Keyed so hopping to another scan starts with fresh view state.
         key={place.id}
         place={place}
-        onBack={() => setMode(fromScan ? 'splash' : 'pick')}
+        onBack={() => setMode(fromScan || place.id === timesSquareDemo.id ? 'splash' : 'pick')}
         onPickScan={(scan) => openPlace(placeFromSaved(scan))}
         autoMotion={motionOk}
         background={background}
@@ -166,5 +167,5 @@ export default function Home() {
     )
   }
 
-  return <Splash onScan={startScan} />
+  return <Splash onScan={startScan} onDemo={() => openPlace(timesSquareDemo)} />
 }

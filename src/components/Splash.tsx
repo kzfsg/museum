@@ -7,12 +7,15 @@ import styles from './Splash.module.css'
 
 interface SplashProps {
   onScan: () => void
+  onDemo: () => void
 }
 
-export function Splash({ onScan }: SplashProps) {
+export function Splash({ onScan, onDemo }: SplashProps) {
   return (
     <main className={styles.hero}>
-      <div className={styles.wordmark}>time machine<TimeMachineIcon size={19} strokeWidth={1.5} /></div>
+      <button type="button" className={styles.wordmark} onClick={onDemo} aria-label="time machine — open Times Square demo" title="Explore the Times Square demo">
+        time machine<TimeMachineIcon size={19} strokeWidth={1.5} />
+      </button>
       <div className={styles.intro}>
         <h1>travel back in time,</h1>
         <p>transform new york<br />into a living museum</p>
