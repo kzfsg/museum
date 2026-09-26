@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Camera, Check, History, Map as MapIcon, X } from 'lucide-react'
+import { ArrowUpRight, Check, Compass, History, Map as MapIcon, X } from 'lucide-react'
 import styles from './chrome.module.css'
-import { angleDiff, circularMean, normalizeDeg, watchOrientation, type Orientation } from '@/src/lib/motion'
+import { angleDiff, circularMean, normalizeDeg, requestMotionPermission, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
 import { MapScreen } from '@/src/components/MapScreen'
@@ -14,6 +14,8 @@ const SLOT_STEP = 360 / SLOT_COUNT
 // How close to a slot's heading the phone must be for it to auto-capture.
 const CAPTURE_TOLERANCE_DEG = 6
 const FRAME_WIDTH = 640
+// With no orientation reading by now, motion is blocked or missing.
+const SENSOR_WAIT_MS = 1500
 
 interface CaptureProps {
   onDone: (frames: CapturedFrame[]) => void
@@ -43,10 +45,16 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
   const northOffsetsRef = useRef<number[]>([])
   const [filled, setFilled] = useState<Set<number>>(new Set())
   const [reading, setReading] = useState<Orientation | null>(null)
+  const readingRef = useRef<Orientation | null>(null)
+  readingRef.current = reading
   // Total rotation so far, to notice a full lap that left gaps.
   const turnedRef = useRef({ total: 0, last: null as number | null })
   const heading = reading?.heading ?? null
   const [cameraError, setCameraError] = useState<string | null>(null)
+  // No reading arrived in time: offer to turn motion on (iOS may have skipped
+  // or refused the prompt at the start), since photos are only taken by turning.
+  const [sensorLate, setSensorLate] = useState(false)
+  const [motionError, setMotionError] = useState<string | null>(null)
 
   useEffect(() => {
     let stream: MediaStream | null = null
@@ -103,10 +111,22 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
     })
   }, [])
 
-  // Without a compass (laptops), each tap captures the next slot in order.
-  function manualCapture() {
-    const slot = [...Array(SLOT_COUNT).keys()].find((s) => !framesRef.current.has(s))
-    if (slot !== undefined) grabFrame(slot, slot * SLOT_STEP, 0)
+  useEffect(() => {
+    const timer = setTimeout(() => setSensorLate(true), SENSOR_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Must run inside the tap for iOS to show the prompt again.
+  async function enableMotion() {
+    setMotionError(null)
+    if (!(await requestMotionPermission())) {
+      setMotionError('motion access is blocked. quit and reopen your browser, then allow motion when asked.')
+      return
+    }
+    // Granted, but still silent after a moment: there's no sensor to read.
+    setTimeout(() => {
+      if (!readingRef.current) setMotionError('no motion sensor found. scan with a phone to capture as you turn.')
+    }, SENSOR_WAIT_MS)
   }
 
   const count = filled.size
@@ -159,7 +179,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
             {count} / {SLOT_COUNT}
           </span>
           <span className={styles.metaSub}>
-            {heading === null ? 'no motion sensor' : `facing ${Math.round(heading)}°${reading?.absolute ? '' : ' · no compass'}`}
+            {heading === null ? 'motion off' : `facing ${Math.round(heading)}°${reading?.absolute ? '' : ' · no compass'}`}
           </span>
         </div>
       </header>
@@ -172,6 +192,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
           </button>
         )}
         {cameraError && <p className={styles.hint}>{cameraError}</p>}
+        {motionError && <p className={styles.hint}>{motionError}</p>}
         <p className={warning ? `${styles.pill} ${styles.wrap} ${styles.guide} ${styles.guideWarn}` : styles.guideText} aria-live="polite">
           {guidance.message}
         </p>
@@ -181,10 +202,10 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
             map
             <MapIcon size={18} strokeWidth={1.75} aria-hidden="true" />
           </button>
-          {heading === null && (
-            <button onClick={manualCapture} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
-              capture
-              <Camera size={18} strokeWidth={1.75} aria-hidden="true" />
+          {heading === null && sensorLate && (
+            <button onClick={enableMotion} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
+              turn on motion
+              <Compass size={18} strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
           <button onClick={finish} disabled={count === 0} className={`${styles.pill} ${heading === null ? '' : styles.primary}`}>
