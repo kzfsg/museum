@@ -18,13 +18,13 @@ const hanken = Hanken_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Museum — turn any block into a museum',
+  title: 'Time Machine — travel back in time',
   description:
     'Point your phone around any NYC block and look into its past, with local history and heritage pinned where it happened.',
 }
 
 export const viewport: Viewport = {
-  themeColor: '#1c1713',
+  themeColor: '#fafaf7',
   width: 'device-width',
   initialScale: 1,
 }

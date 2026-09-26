@@ -119,11 +119,5 @@ export default function Home() {
     return <Explore place={place} onBack={() => setMode(fromScan ? 'splash' : 'pick')} autoMotion={motionOk} />
   }
 
-  async function browse() {
-    // Ask here too, so spots open with motion already following the phone.
-    setMotionOk(await requestMotionPermission())
-    setMode('pick')
-  }
-
-  return <Splash onScan={startScan} onBrowse={browse} />
+  return <Splash onScan={startScan} />
 }

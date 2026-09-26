@@ -34,7 +34,7 @@ export const BUILDING_RADIUS_M = 120
 const MIN_BUILDING_DISTANCE_M = 12
 const MAX_BUILDING_TIDBITS = 2
 const FETCH_TIMEOUT_MS = 6000
-const USER_AGENT = 'MuseumDivHacks/0.1 (hackathon prototype)'
+const USER_AGENT = 'TimeMachineDivHacks/0.1 (hackathon prototype)'
 
 interface WikiPage {
   title: string
