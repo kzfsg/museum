@@ -1,5 +1,7 @@
 "use client";
 
+// @refresh reset
+
 import { useReducedMotion } from "@/src/lib/useReducedMotion";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
@@ -21,6 +23,10 @@ import {
 const PHOTOS = ['liberty', 'times-square', 'brooklyn'] as const;
 type PhotoId = typeof PHOTOS[number];
 const photoUrl = (id: PhotoId) => `/images/time-machine/${id}.jpg`;
+
+// TUNE THIS: 1 = original density; larger = fewer photos and more space.
+// This changes only the number of cards placed on the original path.
+const PHOTO_SPACING = 1.8;
 
 const ASPECT = 1;
 
@@ -326,9 +332,12 @@ function createRibbon(
     focalU = Math.max(FOCAL_MIN_U, halfU * FOCAL_PER_HALF);
     geo = solveGeometry(halfU, height / u, focalU);
 
+    // Keep geo.pool, sEnd and the path intact. Only spread fewer cards over it,
+    // so the geometry solver cannot normalize away the spacing adjustment.
+    const visiblePairs = Math.max(2, Math.round(geo.pool / Math.max(1, PHOTO_SPACING)));
     for (const card of cards) {
-      card.mesh.visible = card.index < geo.pool;
-      card.phase = card.index / geo.pool;
+      card.mesh.visible = card.index < visiblePairs;
+      card.phase = card.index / visiblePairs;
     }
     const cy = stageRect.top - rect.top + stageRect.height / 2;
     const focal = focalU * u;

@@ -78,7 +78,7 @@ Photographs have gently rounded corners. The CTA is a dark pill with a matching 
 
 **Primary action.** “travel back in time” and an up-right arrow open camera capture. Hover lightens the fill and lifts the button 2px; active returns it to rest. Keyboard focus uses a 2px outline with 5px offset. Color and position transition over 180ms with ease timing; reduced motion removes the transition.
 
-**Time ribbon.** `ImageArc.tsx` is copied from overlay-site’s `components/image-arc.tsx`. Its geometry, shader, camera, 2.8-second emergence, center birth fade and 26-second traversal constant are retained. Integration selects matching past/current halves of generated NYC diptychs, using the same index and lap for opposite cards. Frame count adapts to the viewport. Reduced motion keeps a static arrangement; hidden/offscreen views suspend animation. The accessible description identifies the imagery as AI-generated reconstructions.
+**Time ribbon.** `ImageArc.tsx` is copied from overlay-site’s `components/image-arc.tsx`. Its geometry, shader, camera, 2.8-second emergence, center birth fade and 26-second traversal constant are retained. Integration selects matching past/current halves of generated NYC diptychs, using the same index and lap for opposite cards. Frame count adapts to the viewport. `PHOTO_SPACING` in ImageArc controls density independently of the original path: 1 is original density; 1.8 spreads fewer paired cards along it. The refresh-reset directive remounts the WebGL scene on saved edits. Reduced motion keeps a static arrangement; hidden/offscreen views suspend animation. The accessible description identifies the imagery as AI-generated reconstructions.
 
 ## Do's and Don'ts
 
