@@ -1,6 +1,8 @@
 .hero {
   --hero-ink: #20211e;
   --u: min(1vw, 16px);
+  /* Configure the original ImageArc asset; keep its projection and motion intact. */
+  --photo-overlap: 0.1;
   position: relative;
   isolation: isolate;
   display: flex;
