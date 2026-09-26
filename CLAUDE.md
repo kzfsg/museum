@@ -16,7 +16,8 @@ pnpm test    # vitest unit tests (src/**/*.test.ts)
 ```
 
 Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_READ_WRITE_TOKEN`
-(private Vercel Blob store `museum-scans`). Without either, the app still runs with that feature off.
+(private Vercel Blob store `museum-scans`). The voice guide uses `OPENAI_API_KEY` too (optional
+`OPENAI_GUIDE_MODEL`, `OPENAI_GUIDE_BACKEND_MODEL`, `OPENAI_GUIDE_VOICE`). Without either, the app still runs with that feature off.
 
 ## Layout
 
@@ -40,6 +41,10 @@ Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_R
 - `src/components/PanoramaViewer.tsx` — Pannellum (CDN). `motion` steers by compass with smoothing
   (falls back to relative tracking), `yawOffset` is the manual "line it up" correction. `haov/vaov`
   are explicit so the model's 3:2 output wraps the full sphere without resizing.
+- Voice tour guide (GPT-Live over WebRTC): `app/api/guide/route.ts` creates the session server-side
+  (key stays there; lookups are delegated to a text model with web search), `src/lib/liveGuide.ts`
+  is the browser connection, `src/lib/guide.ts` builds the instructions and describes the view in
+  words (GPT-Live takes no images), `src/components/useTourGuide.ts` feeds it the viewer's yaw.
 - `src/data/places.ts` — sample spots; `placeholder: true` panoramas are not the actual place.
 - TypeScript errors are ignored by `next build`; run `pnpm exec tsc --noEmit` to check.
 

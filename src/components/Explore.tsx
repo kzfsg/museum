@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, History, Rows2, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, Headphones, History, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
@@ -10,6 +10,7 @@ import { useAutoMotion } from '@/src/lib/useAutoMotion'
 import type { MotionMode, PannellumViewer } from '@/src/components/PanoramaViewer'
 import { readView, syncViews, type View } from '@/src/lib/viewSync'
 import { ScanMap } from '@/src/components/ScanMap'
+import { useTourGuide } from '@/src/components/useTourGuide'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 import type { Background } from '@/src/components/ScanReview'
 
@@ -56,6 +57,8 @@ export function Explore({
   const thenViewer = useRef<PannellumViewer | null>(null)
   const nowViewer = useRef<PannellumViewer | null>(null)
   const splitShown = split && Boolean(place.present)
+  const guide = useTourGuide(place, thenViewer)
+  const guideOn = guide.status !== 'off'
 
   // Keep the two panes looking the same way. Only the top pane follows the
   // phone; the bottom one copies it (and either can be dragged).
@@ -183,6 +186,12 @@ export function Explore({
             </button>
           </p>
         )}
+        {guideOn && guide.caption && (
+          <p className={`${styles.hint} ${styles.caption}`} aria-live="polite">
+            {guide.caption}
+          </p>
+        )}
+        {guide.error && <p className={styles.hint}>{guide.error}</p>}
         {motionError && <p className={styles.hint}>{motionError}</p>}
         {motion && motionMode === 'relative' && (
           <p className={styles.hint}>no compass on this device, so the view follows your turns but isn’t tied to north</p>
@@ -203,6 +212,21 @@ export function Explore({
             <button onClick={() => setAlignOpen((open) => !open)} aria-pressed={alignOpen} className={styles.pill}>
               <SlidersHorizontal size={17} strokeWidth={1.75} aria-hidden="true" />
               {alignOpen ? 'done' : 'align'}
+            </button>
+          )}
+          <button onClick={guide.toggle} aria-pressed={guideOn} className={`${styles.pill} ${guideOn ? styles.ink : ''}`}>
+            <Headphones size={17} strokeWidth={1.75} aria-hidden="true" />
+            {guide.status === 'connecting' ? 'calling guide…' : guideOn ? 'end tour' : 'guide'}
+          </button>
+          {guide.status === 'live' && (
+            <button
+              onClick={guide.toggleMute}
+              aria-pressed={guide.muted}
+              aria-label={guide.muted ? 'unmute microphone' : 'mute microphone'}
+              title={guide.muted ? 'unmute microphone' : 'mute microphone'}
+              className={`${styles.pill} ${styles.round}`}
+            >
+              {guide.muted ? <MicOff size={17} strokeWidth={1.75} aria-hidden="true" /> : <Mic size={17} strokeWidth={1.75} aria-hidden="true" />}
             </button>
           )}
           {place.present && (
