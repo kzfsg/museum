@@ -21,6 +21,14 @@ export function defaultHfov(width: number, height: number): number {
   return (2 * Math.atan(Math.tan((LONG_SIDE_FOV_DEG * Math.PI) / 360) * across) * 180) / Math.PI
 }
 
+// Horizontal FOV actually visible when a video with horizontal FOV `hfov` is
+// shown in a box with `object-fit: cover`, which crops whichever side overflows.
+export function coverHfov(hfov: number, videoW: number, videoH: number, boxW: number, boxH: number): number {
+  const scale = Math.max(boxW / videoW, boxH / videoH)
+  const visible = Math.min(1, boxW / (videoW * scale))
+  return (2 * Math.atan(Math.tan((hfov * Math.PI) / 360) * visible) * 180) / Math.PI
+}
+
 // A small grayscale image, normalized to zero mean and unit variance so that
 // auto-exposure differences between frames don't affect matching.
 export interface Gray {

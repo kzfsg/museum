@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, BookOpen, ChevronRight, Compass, Headphones, History, Map as MapIcon, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, Camera, ChevronRight, Compass, Headphones, History, Map as MapIcon, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
@@ -11,6 +11,7 @@ import type { MotionMode, PannellumViewer } from '@/src/components/PanoramaViewe
 import { readView, syncViews, type View } from '@/src/lib/viewSync'
 import { ScanMapView, useSavedScans } from '@/src/components/ScanMap'
 import { useTourGuide } from '@/src/components/useTourGuide'
+import { LiveCamera } from '@/src/components/LiveCamera'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 import type { Background } from '@/src/components/ScanReview'
 
@@ -56,6 +57,8 @@ export function Explore({
   const [listOpen, setListOpen] = useState(false)
   const [split, setSplit] = useState(true)
   const [mapOpen, setMapOpen] = useState(false)
+  // The bottom pane shows the live camera instead of the present-day panorama.
+  const [live, setLive] = useState(false)
   // Explains the compare button until it's first used (ever, on this device).
   const [splitHintSeen, setSplitHintSeen] = useState(true)
   useEffect(() => {
@@ -75,7 +78,8 @@ export function Explore({
   // Keep the two panes looking the same way. Only the top pane follows the
   // phone; the bottom one copies it (and either can be dragged).
   useEffect(() => {
-    if (!splitShown) return
+    // Restarts when the camera goes off, so the top pane leads the fresh viewer.
+    if (!splitShown || live) return
     let last: View | null = null
     let frame = 0
     const tick = () => {
@@ -84,7 +88,25 @@ export function Explore({
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [splitShown])
+  }, [splitShown, live])
+
+  // While the camera is live, zoom the past to the camera's field of view so
+  // buildings are the same size in both panes; put the old zoom back after.
+  const liveShown = splitShown && live
+  const [cameraHfov, setCameraHfov] = useState<number | null>(null)
+  const hfovBeforeLive = useRef<number | null>(null)
+  useEffect(() => {
+    const viewer = thenViewer.current
+    if (!liveShown || cameraHfov === null || !viewer) return
+    hfovBeforeLive.current ??= viewer.getHfov()
+    viewer.setHfov(cameraHfov, 400)
+  }, [liveShown, cameraHfov])
+  useEffect(() => {
+    if (liveShown) return
+    setCameraHfov(null)
+    if (hfovBeforeLive.current !== null) thenViewer.current?.setHfov(hfovBeforeLive.current, 400)
+    hfovBeforeLive.current = null
+  }, [liveShown])
 
   function toggleSplit() {
     if (thenViewer.current) setResume(readView(thenViewer.current))
@@ -137,14 +159,18 @@ export function Explore({
             <span className={`${styles.paneLabel} ${styles.paneLabelAbove}`}>{place.year}</span>
           </div>
           <div className={styles.pane}>
-            <PanoramaViewer
-              src={place.present!}
-              hfov={resume?.hfov ?? place.viewHfov}
-              yaw={resume?.yaw ?? place.startYaw}
-              pitch={resume?.pitch}
-              onViewer={(v) => (nowViewer.current = v)}
-            />
-            <span className={`${styles.paneLabel} ${styles.paneLabelBelow}`}>today</span>
+            {live ? (
+              <LiveCamera onHfov={setCameraHfov} />
+            ) : (
+              <PanoramaViewer
+                src={place.present!}
+                hfov={resume?.hfov ?? place.viewHfov}
+                yaw={resume?.yaw ?? place.startYaw}
+                pitch={resume?.pitch}
+                onViewer={(v) => (nowViewer.current = v)}
+              />
+            )}
+            <span className={`${styles.paneLabel} ${styles.paneLabelBelow}`}>{live ? 'live' : 'today'}</span>
           </div>
         </div>
       ) : (
@@ -274,6 +300,20 @@ export function Explore({
               className={`${styles.pill} ${styles.round} ${split ? styles.ink : ''}`}
             >
               <Rows2 size={17} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          )}
+          {splitShown && (
+            <button
+              onClick={() => {
+                nowViewer.current = null
+                setLive((on) => !on)
+              }}
+              aria-pressed={live}
+              aria-label={live ? 'show today’s panorama' : 'live camera'}
+              title={live ? 'show today’s panorama' : 'live camera'}
+              className={`${styles.pill} ${styles.round} ${live ? styles.ink : ''}`}
+            >
+              <Camera size={17} strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
           {place.tidbits.length > 0 && (
