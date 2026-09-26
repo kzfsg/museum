@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Camera, Check, History, X } from 'lucide-react'
+import { ArrowUpRight, Camera, Check, History, Map as MapIcon, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import { angleDiff, circularMean, normalizeDeg, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { CapturedFrame } from '@/src/lib/stitch'
+import { MapScreen } from '@/src/components/MapScreen'
+import type { ScanWithUrl } from '@/app/api/scans/route'
 
 const SLOT_COUNT = SCAN_SLOTS
 const SLOT_STEP = 360 / SLOT_COUNT
@@ -19,9 +21,18 @@ interface CaptureProps {
   // Saved scans within a few metres of here; lets the user skip scanning.
   nearbyCount?: number
   onOpenNearby?: () => void
+  // The user's position once known, to center the map.
+  here?: { lat: number; lng: number } | null
+  // Open a saved scan picked on the map.
+  onPickScan: (scan: ScanWithUrl) => void
 }
 
-export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: CaptureProps) {
+export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here, onPickScan }: CaptureProps) {
+  // The map opens over the camera so the scan so far survives a look around.
+  const [mapOpen, setMapOpen] = useState(false)
+  // Auto-capture is paused while the map covers the camera.
+  const pausedRef = useRef(false)
+  pausedRef.current = mapOpen
   const videoRef = useRef<HTMLVideoElement>(null)
   // When the camera started delivering frames (null until then).
   const cameraReadyAtRef = useRef<number | null>(null)
@@ -86,7 +97,7 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
       if (turned.last !== null) turned.total += Math.abs(angleDiff(o.rawHeading, turned.last))
       turned.last = o.rawHeading
       if (o.absolute) northOffsetsRef.current.push(normalizeDeg(o.heading - o.rawHeading))
-      if (!canCapture(o)) return
+      if (pausedRef.current || !canCapture(o)) return
       const slot = Math.round(o.rawHeading / SLOT_STEP) % SLOT_COUNT
       if (Math.abs(angleDiff(o.rawHeading, slot * SLOT_STEP)) <= CAPTURE_TOLERANCE_DEG) grabFrame(slot, o.rawHeading, o.pitch)
     })
@@ -166,6 +177,10 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
         </p>
         <HeadingRing filled={filled} heading={reading?.rawHeading ?? null} />
         <div className={styles.row}>
+          <button onClick={() => setMapOpen(true)} className={styles.pill}>
+            map
+            <MapIcon size={18} strokeWidth={1.75} aria-hidden="true" />
+          </button>
           {heading === null && (
             <button onClick={manualCapture} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
               capture
@@ -178,6 +193,8 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby }: Cap
           </button>
         </div>
       </div>
+
+      {mapOpen && <MapScreen here={here} onPick={onPickScan} onBack={() => setMapOpen(false)} />}
     </main>
   )
 }
