@@ -83,6 +83,16 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
       form.set('image', squashed, 'scan.jpg')
       form.set('year', String(year))
       form.set('startYaw', String(startYaw))
+      form.set(
+        'capture',
+        JSON.stringify({
+          frames: frames.map((f) => ({ heading: Math.round(f.heading * 10) / 10, pitch: Math.round(f.pitch * 10) / 10 })),
+          frameSize: frames[0] ? [frames[0].image.width, frames[0].image.height] : undefined,
+          lensHfov: Math.round(lens.hfov * 10) / 10,
+          lensMeasured: lens.measured,
+          userAgent: navigator.userAgent,
+        })
+      )
       if (location) {
         form.set('lat', String(location.lat))
         form.set('lng', String(location.lng))
