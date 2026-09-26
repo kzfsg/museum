@@ -64,7 +64,9 @@ export default function TracePage() {
         <article className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <figure className="space-y-1">
-              <figcaption className="text-muted">Sent to the model (stitched scan, squashed to 3:2)</figcaption>
+              <figcaption className="text-muted">
+                Stitched scan (squashed to 3:2){trace.mode === 'site' ? ' — not sent in site mode' : ' — sent to the model'}
+              </figcaption>
               <img src={imageUrl(trace.inputPath)} alt="Input panorama" className="w-full rounded-md border border-border" />
             </figure>
             <figure className="space-y-1">
@@ -77,6 +79,12 @@ export default function TracePage() {
             </figure>
           </div>
 
+          <Block title={`Mode: ${trace.mode ?? 'follow'}${trace.note ? ` — "${trace.note}"` : ''}`}>
+            {trace.mode === 'site'
+              ? 'The scan was taken in a building that did not exist yet in the chosen year, so the site was generated from the prompt alone (the scan image was not sent to the model).'
+              : 'The scan image was sent to the model to be repainted.'}
+          </Block>
+          <Block title="Building the scan was taken in">{JSON.stringify(trace.building ?? null, null, 2)}</Block>
           <Block title="Outcome">{JSON.stringify(trace.outcome, null, 2)}</Block>
           <Block title="Timings (ms)">{JSON.stringify(trace.timingsMs, null, 2)}</Block>
           <Block title={`Prompt (model: ${trace.model})`}>{trace.prompt}</Block>

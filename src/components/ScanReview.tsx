@@ -29,11 +29,14 @@ export interface ScanResult {
   vaov?: number
   vOffset?: number
   viewHfov?: number
+  note?: string | null
 }
 
 export interface ScanLocation {
   lat: number
   lng: number
+  // GPS accuracy in meters, if reported.
+  accuracy?: number
 }
 
 interface ScanReviewProps {
@@ -96,6 +99,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
       if (location) {
         form.set('lat', String(location.lat))
         form.set('lng', String(location.lng))
+        if (location.accuracy) form.set('accuracy', String(location.accuracy))
       }
       const res = await fetch('/api/generate', { method: 'POST', body: form })
       if (!res.ok) {
@@ -103,7 +107,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
         throw new Error(error)
       }
       const data = (await res.json()) as GenerateResponse
-      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov })
+      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov, note: data.note })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed')
       setBusy(false)

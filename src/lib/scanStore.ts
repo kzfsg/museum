@@ -15,6 +15,8 @@ export interface SavedScan {
   startYaw: number
   imagePath: string
   tidbits: Tidbit[]
+  // Shown when the scan's building didn't exist yet in `year` (site mode).
+  note?: string | null
   createdAt: string
 }
 

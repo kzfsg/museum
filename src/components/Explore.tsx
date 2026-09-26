@@ -23,6 +23,7 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
   // Only complain about missing sensors if the user turned motion on themselves.
   const [userAskedForMotion, setUserAskedForMotion] = useState(false)
   const [alignOpen, setAlignOpen] = useState(false)
+  const [noteDismissed, setNoteDismissed] = useState(false)
   const [motionError, setMotionError] = useState<string | null>(null)
   const [motionMode, setMotionMode] = useState<MotionMode | null>(null)
   const [yawOffset, setYawOffset] = useState(0)
@@ -77,6 +78,16 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
           </div>
         </div>
       </header>
+
+      {place.note && !noteDismissed && (
+        <button
+          onClick={() => setNoteDismissed(true)}
+          className="absolute inset-x-4 top-20 z-20 rounded-md bg-surface/90 px-4 py-3 text-left text-sm"
+        >
+          {place.note}
+          <span className="ml-2 text-xs text-muted">Tap to hide</span>
+        </button>
+      )}
 
       <footer className="absolute bottom-0 inset-x-0 z-20 p-4 space-y-2">
         {motionError && <p className="text-xs text-muted text-center">{motionError}</p>}

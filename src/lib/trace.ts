@@ -4,6 +4,7 @@
 // Stored in the Blob store under traces/ (separate from scans/).
 
 import { get, list, put } from '@vercel/blob'
+import type { Building } from '@/src/lib/building'
 import type { History } from '@/src/lib/history'
 
 // What the phone reports about the capture (sent by the client as JSON).
@@ -22,12 +23,18 @@ export interface Trace {
     year: number
     lat: number | null
     lng: number | null
+    accuracyM: number | null
     startYaw: number
     inputBytes: number
     inputType: string
   }
   capture: CaptureInfo | null
   history: History | null
+  // The building the scan was taken in, if any, and which mode that implied:
+  // follow (repaint the scan) or site (the building didn't exist yet).
+  building: Building | null
+  mode: 'follow' | 'site'
+  note: string | null
   prompt: string
   model: string
   timingsMs: Record<string, number>

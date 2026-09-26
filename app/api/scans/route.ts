@@ -1,5 +1,5 @@
 // GET /api/scans                  -> most recent saved scans
-// GET /api/scans?lat=..&lng=..    -> saved scans near a point, nearest first
+// GET /api/scans?lat=..&lng=..    -> saved scans near a point, newest first
 
 import { listScanIndex, nearestEntries, readScan, scanImageUrl, scanStoreEnabled, type SavedScan } from '@/src/lib/scanStore'
 
@@ -19,9 +19,10 @@ export async function GET(req: Request) {
   const nearby = url.searchParams.has('lat') && Number.isFinite(lat) && Number.isFinite(lng)
 
   const index = await listScanIndex()
-  const entries = nearby
-    ? nearestEntries(index, lat, lng, NEARBY_RADIUS_M)
-    : index.sort((a, b) => b.id.localeCompare(a.id)) // ids start with a timestamp
+  // Newest first (ids start with a timestamp): for a spot scanned several
+  // times, the latest scan is the one to show.
+  const newestFirst = (a: { id: string }, b: { id: string }) => b.id.localeCompare(a.id)
+  const entries = nearby ? nearestEntries(index, lat, lng, NEARBY_RADIUS_M).sort(newestFirst) : index.sort(newestFirst)
 
   const scans = await Promise.all(entries.slice(0, MAX_RESULTS).map((e) => readScan(e.pathname)))
   const result: ScanWithUrl[] = scans

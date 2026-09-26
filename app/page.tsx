@@ -28,6 +28,7 @@ function placeFromScan(scan: ScanResult): Place {
     vaov: scan.vaov,
     vOffset: scan.vOffset,
     viewHfov: scan.viewHfov,
+    note: scan.note,
   }
 }
 
@@ -42,6 +43,7 @@ function placeFromSaved(scan: ScanWithUrl): Place {
     panorama: scan.imageUrl,
     startYaw: scan.startYaw,
     tidbits: scan.tidbits,
+    note: scan.note,
   }
 }
 
@@ -63,7 +65,7 @@ export default function Home() {
     // Location is looked up while the user scans; it's optional.
     getPosition()
       .then(async ({ coords }) => {
-        const here = { lat: coords.latitude, lng: coords.longitude }
+        const here = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }
         setLocation(here)
         const res = await fetch(`/api/scans?lat=${here.lat}&lng=${here.lng}`)
         if (res.ok) setNearbyScans(((await res.json()) as { scans: ScanWithUrl[] }).scans)

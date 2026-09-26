@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildPrompt } from './prompt'
+import { buildPrompt, buildSitePrompt, siteNote } from './prompt'
 import type { History } from './history'
 
 const history: History = {
@@ -39,5 +39,42 @@ describe('buildPrompt', () => {
 
   it('warns that present-day places may postdate the year', () => {
     expect(buildPrompt(1920, history)).toMatch(/Nearby places today.*may not have existed yet in 1920/)
+  })
+})
+
+describe('buildPrompt (follow mode)', () => {
+  it('does not assume the scan is a street', () => {
+    const prompt = buildPrompt(1920, history)
+    expect(prompt).not.toMatch(/of a street/)
+    expect(prompt).toMatch(/may be indoors or outdoors/)
+    expect(prompt).toMatch(/If it shows an interior, keep it the same interior/)
+  })
+})
+
+describe('buildSitePrompt', () => {
+  const building = { name: 'Alfred Lerner Hall', openedYear: 1999, yearSource: 'wikidata' as const, distanceM: 0 }
+
+  it('describes the site outdoors and why', () => {
+    const prompt = buildSitePrompt(1920, history, building)
+    expect(prompt).toMatch(/outdoors at street level in New York City in 1920/)
+    expect(prompt).toMatch(/Alfred Lerner Hall, a building that opened in 1999/)
+  })
+
+  it('places only buildings that were already standing', () => {
+    const prompt = buildSitePrompt(1920, history, building)
+    expect(prompt).toContain('built 1899')
+    expect(prompt).not.toContain('built 1972')
+  })
+})
+
+describe('siteNote', () => {
+  const building = { name: null, openedYear: 1999, yearSource: 'wikidata' as const, distanceM: 0 }
+  it('explains site mode in the requested wording', () => {
+    expect(siteNote(1920, building)).toBe("This building opened in 1999. Here's the site in 1920.")
+  })
+  it('is null when the building already existed or is unknown', () => {
+    expect(siteNote(1999, building)).toBeNull()
+    expect(siteNote(2000, building)).toBeNull()
+    expect(siteNote(1920, null)).toBeNull()
   })
 })

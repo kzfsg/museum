@@ -29,6 +29,8 @@ export interface Place {
   vOffset?: number
   // Initial zoom (horizontal FOV); for scans, matches the camera 1:1.
   viewHfov?: number
+  // Shown over the view, e.g. why a site is shown instead of the scan.
+  note?: string | null
   tidbits: Tidbit[]
 }
 
