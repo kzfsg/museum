@@ -14,7 +14,7 @@ export function Splash({ onScan }: SplashProps) {
       <div className={styles.wordmark}>time machine<History size={19} strokeWidth={1.5} aria-hidden="true" /></div>
       <div className={styles.intro}>
         <h1>travel back in time,</h1>
-        <p>transform your new york<br />into a living museum</p>
+        <p>transform new york<br />into a living museum</p>
       </div>
       <ImageArc stageId="hero-stage" />
       <div id="hero-stage" className={styles.ribbon} role="img" aria-label="AI-generated reconstructions of NYC landmarks: matching past views on the left and present views on the right." />
