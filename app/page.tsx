@@ -27,6 +27,7 @@ function placeFromScan(scan: ScanResult): Place {
     tidbits: scan.tidbits,
     vaov: scan.vaov,
     vOffset: scan.vOffset,
+    viewHfov: scan.viewHfov,
   }
 }
 

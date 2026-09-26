@@ -27,6 +27,8 @@ export interface Place {
   // Vertical coverage for partial panoramas (raw scans); defaults to 180.
   vaov?: number
   vOffset?: number
+  // Initial zoom (horizontal FOV); for scans, matches the camera 1:1.
+  viewHfov?: number
   tidbits: Tidbit[]
 }
 

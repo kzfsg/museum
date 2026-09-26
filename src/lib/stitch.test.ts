@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bandExtent, frameVfov } from './stitch'
+import { BAND_PADDING_DEG, bandExtent, frameVfov, paddedExtent } from './stitch'
 
 // Portrait 9:16 frame: vertical FOV ~68.6 degrees.
 const image = { width: 640, height: 1138 }
@@ -23,5 +23,18 @@ describe('bandExtent', () => {
     const { top, bottom } = bandExtent([{ pitch: 60, image }, { pitch: -60, image }], HFOV)
     expect(top).toBeCloseTo(60 + half, 5)
     expect(bottom).toBeCloseTo(-60 - half, 5)
+  })
+})
+
+describe('paddedExtent', () => {
+  it('covers every frame plus padding', () => {
+    const { top, bottom } = paddedExtent([{ pitch: 8, image }, { pitch: -6, image }], HFOV)
+    expect(top).toBeCloseTo(8 + half + BAND_PADDING_DEG, 5)
+    expect(bottom).toBeCloseTo(-6 - half - BAND_PADDING_DEG, 5)
+  })
+  it('never exceeds the sphere', () => {
+    const { top, bottom } = paddedExtent([{ pitch: 60, image }, { pitch: -60, image }], HFOV)
+    expect(top).toBe(90)
+    expect(bottom).toBe(-90)
   })
 })

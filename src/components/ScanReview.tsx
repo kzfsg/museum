@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { canvasToBlob, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
+import { canvasToBlob, frameVfov, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
+import { fitHfov } from '@/src/components/PanoramaViewer'
 import { SCAN_SLOTS } from '@/src/lib/captureGuide'
 import type { Tidbit } from '@/src/data/places'
 import type { GenerateResponse } from '@/app/api/generate/route'
@@ -27,6 +28,7 @@ export interface ScanResult {
   tidbits: Tidbit[]
   vaov?: number
   vOffset?: number
+  viewHfov?: number
 }
 
 export interface ScanLocation {
@@ -53,6 +55,12 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
   const missing = SCAN_SLOTS - frames.length
   // Measured once per scan from how neighbouring photos overlap.
   const lens = useMemo(() => scanHfov(frames), [frames])
+  // Show the scan at the same zoom the live camera had: the camera filled the
+  // screen's height, so match its vertical FOV.
+  const viewHfov = useMemo(() => {
+    if (!frames[0] || typeof window === 'undefined') return undefined
+    return fitHfov(frameVfov(frames[0].image, lens.hfov), window.innerWidth, window.innerHeight)
+  }, [frames, lens])
 
   useEffect(() => {
     let url: string | null = null
@@ -85,7 +93,7 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
         throw new Error(error)
       }
       const data = (await res.json()) as GenerateResponse
-      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits })
+      onResult({ panoramaUrl: data.imageUrl, year, generated: true, startYaw, tidbits: data.tidbits, viewHfov })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed')
       setBusy(false)
@@ -96,12 +104,12 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
   async function viewRaw() {
     const { canvas, vaov, vOffset } = stitchBand(frames, lens.hfov, PREVIEW_WIDTH)
     const blob = await canvasToBlob(canvas)
-    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [], vaov, vOffset })
+    onResult({ panoramaUrl: URL.createObjectURL(blob), year: new Date().getFullYear(), generated: false, startYaw, tidbits: [], vaov, vOffset, viewHfov })
   }
 
   return (
     <main className="fixed inset-0">
-      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} yaw={startYaw} motion={autoMotion} />}
+      {preview && <PanoramaViewer src={preview.url} vaov={preview.vaov} vOffset={preview.vOffset} hfov={viewHfov} yaw={startYaw} motion={autoMotion} />}
 
       <header className="absolute top-0 inset-x-0 z-20 flex items-start justify-between p-4 hud-backdrop">
         <button onClick={onRetake} disabled={busy} className="text-sm text-muted">← Retake</button>

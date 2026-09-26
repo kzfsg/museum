@@ -32,14 +32,27 @@ const SENSOR_WAIT_MS = 1500
 // like looking through the phone rather than a zoomed-out fishbowl.
 const PORTRAIT_HFOV = CAMERA_HFOV_DEG
 const LANDSCAPE_HFOV = 100
-// Partial bands are shown a bit tighter than "exactly fills the screen", which
-// leaves room to tilt the phone before hitting the band's edge.
-const PARTIAL_ZOOM = 0.8
 
 // Widest horizontal FOV at which a band `vaov` degrees tall still fills the
 // screen height, so partial panoramas never show empty space above or below.
 export function fitHfov(vaov: number, width: number, height: number): number {
   return (2 * Math.atan(Math.tan((vaov * Math.PI) / 360) * (width / height)) * 180) / Math.PI
+}
+
+// Initial zoom: the preferred view (e.g. 1:1 with the camera) or the default,
+// but never so wide that a partial band leaves empty space above or below.
+export function chooseHfov(opts: {
+  vaov: number
+  width: number
+  height: number
+  preferred?: number
+}): { hfov: number; maxHfov: number } {
+  const portrait = opts.height > opts.width
+  const base = opts.preferred ?? (portrait ? PORTRAIT_HFOV : LANDSCAPE_HFOV)
+  const limit = portrait ? 90 : 120
+  const fit = opts.vaov < 180 ? fitHfov(opts.vaov, opts.width, opts.height) : Infinity
+  const maxHfov = Math.min(limit, fit)
+  return { hfov: Math.min(base, maxHfov), maxHfov }
 }
 
 export interface PanoramaHotspot {
@@ -55,6 +68,8 @@ interface PanoramaViewerProps {
   vaov?: number
   // Degrees the band's center sits above the horizon (partial panoramas).
   vOffset?: number
+  // Preferred horizontal FOV, e.g. to match what the camera showed 1:1.
+  hfov?: number
   hotspots?: PanoramaHotspot[]
   onHotspotClick?: (id: string) => void
   // Pan the view by moving the phone. Uses the compass when available so the
@@ -72,6 +87,7 @@ export function PanoramaViewer({
   src,
   vaov = 180,
   vOffset = 0,
+  hfov: preferredHfov,
   hotspots = [],
   onHotspotClick,
   motion = false,
@@ -96,6 +112,8 @@ export function PanoramaViewer({
   vaovRef.current = vaov
   const vOffsetRef = useRef(vOffset)
   vOffsetRef.current = vOffset
+  const preferredHfovRef = useRef(preferredHfov)
+  preferredHfovRef.current = preferredHfov
   const yawOffsetRef = useRef(yawOffset)
   yawOffsetRef.current = yawOffset
   const onMotionModeRef = useRef(onMotionMode)
@@ -125,12 +143,14 @@ export function PanoramaViewer({
         viewerRef.current = null
       }
 
-      const portrait = window.innerHeight > window.innerWidth
       const partial = vaovRef.current < 180
       const band = { vaov: vaovRef.current, vOffset: partial ? vOffsetRef.current : 0 }
-      const baseHfov = portrait ? PORTRAIT_HFOV : LANDSCAPE_HFOV
-      const maxFit = partial ? fitHfov(band.vaov, window.innerWidth, window.innerHeight) : Infinity
-      const hfov = partial ? Math.min(baseHfov, maxFit * PARTIAL_ZOOM) : baseHfov
+      const { hfov, maxHfov } = chooseHfov({
+        vaov: band.vaov,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        preferred: preferredHfovRef.current,
+      })
       setLoaded(false)
       viewerRef.current = window.pannellum.viewer(containerRef.current, {
         type: 'equirectangular',
@@ -150,7 +170,7 @@ export function PanoramaViewer({
         mouseZoom: true,
         hfov,
         minHfov: Math.min(20, hfov),
-        maxHfov: Math.min(portrait ? 90 : 120, maxFit),
+        maxHfov,
         friction: 0.15,
         yaw: yawRef.current,
         pitch: band.vOffset,

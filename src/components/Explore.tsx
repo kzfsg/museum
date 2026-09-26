@@ -52,6 +52,7 @@ export function Explore({ place, onBack, autoMotion = false }: ExploreProps) {
         src={place.panorama}
         vaov={place.vaov}
         vOffset={place.vOffset}
+        hfov={place.viewHfov}
         hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
         onHotspotClick={setOpenTidbitId}
         motion={motion}
