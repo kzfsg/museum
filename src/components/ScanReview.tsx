@@ -15,7 +15,11 @@ const PanoramaViewer = dynamic(
   { ssr: false }
 )
 
-const YEARS = [1900, 1920, 1940, 1970]
+// The server accepts 1600-2000 (see app/api/generate/route.ts).
+const MIN_YEAR = 1600
+const MAX_YEAR = 2000
+const DEFAULT_YEAR = 1920
+const CENTURIES = [1600, 1700, 1800, 1900, 2000]
 // The image model only accepts 3:2, so the 2:1 panorama is squashed for the
 // request. The viewer is told the image spans 360x180 degrees, which stretches
 // it back, so the result is used as-is.
@@ -53,7 +57,7 @@ interface ScanReviewProps {
 
 export function ScanReview({ frames, location, onResult, onRetake, autoMotion = false }: ScanReviewProps) {
   const [preview, setPreview] = useState<{ url: string; vaov: number; vOffset: number } | null>(null)
-  const [year, setYear] = useState(1920)
+  const [year, setYear] = useState(DEFAULT_YEAR)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const startYaw = frames[0]?.heading ?? 0
@@ -174,12 +178,37 @@ export function ScanReview({ frames, location, onResult, onRetake, autoMotion = 
             </div>
           ) : (
             <>
-              <div className={styles.segmented} role="group" aria-label="year">
-                {YEARS.map((y) => (
-                  <button key={y} onClick={() => setYear(y)} aria-pressed={y === year} className={styles.segment}>
-                    {y}
-                  </button>
-                ))}
+              <div className={styles.scrub}>
+                <output htmlFor="year-scrub" className={styles.scrubYear}>
+                  {year}
+                </output>
+                <div className={styles.scrubTrack}>
+                  <input
+                    id="year-scrub"
+                    type="range"
+                    min={MIN_YEAR}
+                    max={MAX_YEAR}
+                    step={1}
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    aria-label="year"
+                    aria-valuetext={String(year)}
+                    className={styles.scrubInput}
+                  />
+                  <div className={styles.scrubLabels} aria-hidden="true">
+                    {CENTURIES.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setYear(c)}
+                        style={{ left: `calc(var(--thumb) / 2 + (100% - var(--thumb)) * ${(c - MIN_YEAR) / (MAX_YEAR - MIN_YEAR)})` }}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className={styles.sheetBlock}>
                 <button onClick={generate} className={`${styles.pill} ${styles.ink} ${styles.primary}`}>
