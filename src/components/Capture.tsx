@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Check, Compass, History, Map as MapIcon, X } from 'lucide-react'
+import { Check, Compass, History, Map as MapIcon, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import { angleDiff, circularMean, normalizeDeg, requestMotionPermission, watchOrientation, type Orientation } from '@/src/lib/motion'
 import { CAMERA_WARMUP_MS, canCapture, guide, isUsableFrame, SCAN_SLOTS } from '@/src/lib/captureGuide'
@@ -20,16 +20,13 @@ const SENSOR_WAIT_MS = 1500
 interface CaptureProps {
   onDone: (frames: CapturedFrame[]) => void
   onCancel: () => void
-  // Saved scans within a few metres of here; lets the user skip scanning.
-  nearbyCount?: number
-  onOpenNearby?: () => void
   // The user's position once known, to center the map.
   here?: { lat: number; lng: number } | null
   // Open a saved scan picked on the map.
   onPickScan: (scan: ScanWithUrl) => void
 }
 
-export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here, onPickScan }: CaptureProps) {
+export function Capture({ onDone, onCancel, here, onPickScan }: CaptureProps) {
   // The map opens over the camera so the scan so far survives a look around.
   const [mapOpen, setMapOpen] = useState(false)
   // Auto-capture is paused while the map covers the camera.
@@ -185,12 +182,6 @@ export function Capture({ onDone, onCancel, nearbyCount = 0, onOpenNearby, here,
       </header>
 
       <div className={styles.bottom}>
-        {nearbyCount > 0 && onOpenNearby && (
-          <button onClick={onOpenNearby} className={`${styles.pill} ${styles.wrap}`}>
-            this spot has already been scanned, view it now
-            <ArrowUpRight size={17} strokeWidth={1.75} aria-hidden="true" />
-          </button>
-        )}
         {cameraError && <p className={styles.hint}>{cameraError}</p>}
         {motionError && <p className={styles.hint}>{motionError}</p>}
         <p className={warning ? `${styles.pill} ${styles.wrap} ${styles.guide} ${styles.guideWarn}` : styles.guideText} aria-live="polite">
