@@ -220,10 +220,81 @@ const cached: Place[] = [
 
 export const samples: Place[] = [cached[0], { ...timesSquareDemo, id: 'sample-times-square' }, cached[1], cached[2]]
 
-// The courtyard scan has even coverage and a clear matching present-day view.
+// Cached scan 1790524657442-7xqtei, captured 2026-09-27T15:57:37.555Z.
 export const quickDemo: Place = {
-  ...cached[0],
-  id: 'demo-columbia-courtyard',
-  name: 'Columbia University · Lerner Hall',
-  neighborhood: 'courtyard demo',
+  "id": "demo-columbia-courtyard",
+  "name": "Columbia University · Lerner Hall",
+  "neighborhood": "courtyard demo",
+  "lat": 40.80711021912085,
+  "lng": -73.96389637243108,
+  "year": 1920,
+  "panorama": "/panoramas/demo/quick-demo-past.jpg",
+  "present": "/panoramas/demo/quick-demo-present.jpg",
+  "startYaw": 98.23351420147856,
+  "note": "this building opened in 1999. here's the site in 1920.",
+  "tidbits": [
+    {
+      "id": "wiki-Alfred Lerner Hall",
+      "kind": "history",
+      "title": "Alfred Lerner Hall",
+      "body": "Alfred Lerner Hall is the student center or students' union of Columbia University. It is named for Al Lerner, who financed part of its construction. Situated on the university's historic Morningside Heights campus in New York City, the building, designed by deconstructivist architect Bernard Tschumi, then dean of Columbia...",
+      "pitch": 0,
+      "yaw": -173.40659219583705,
+      "source": "https://en.wikipedia.org/wiki/Alfred_Lerner_Hall"
+    },
+    {
+      "id": "bldg-552 WEST 114 STREET",
+      "kind": "local",
+      "title": "Standing since 1900",
+      "body": "City records list 552 West 114 Street as built in 1900, 5 floors. It's one of the oldest buildings around you.",
+      "pitch": 0,
+      "yaw": -162.55267447654583,
+      "source": "NYC Department of City Planning, PLUTO"
+    },
+    {
+      "id": "bldg-554 WEST 114 STREET",
+      "kind": "local",
+      "title": "Standing since 1900",
+      "body": "City records list 554 West 114 Street as built in 1900, 5 floors. It's one of the oldest buildings around you.",
+      "pitch": 8,
+      "yaw": -159.36322038273215,
+      "source": "NYC Department of City Planning, PLUTO"
+    },
+    {
+      "id": "wiki-Carman Hall",
+      "kind": "history",
+      "title": "Carman Hall",
+      "body": "Carman Hall is a dormitory located on Columbia University's Morningside Heights campus and currently houses first-year students from Columbia College as well as the Fu Foundation School of Engineering and Applied Science.",
+      "pitch": 16,
+      "yaw": -155.23779541202433,
+      "source": "https://en.wikipedia.org/wiki/Carman_Hall"
+    },
+    {
+      "id": "wiki-Furnald Hall",
+      "kind": "history",
+      "title": "Furnald Hall",
+      "body": "Furnald Hall is a dormitory located on Columbia University's Morningside Heights campus and currently houses first-year students from Columbia College as well as the Fu Foundation School of Engineering and Applied Science. It is dedicated in memory of Royal Blacker Furnald, of the Columbia College Class of 1901.",
+      "pitch": 0,
+      "yaw": 0.8324501419082821,
+      "source": "https://en.wikipedia.org/wiki/Furnald_Hall"
+    },
+    {
+      "id": "wiki-Statue of Thomas Jefferson (Columbia University)",
+      "kind": "history",
+      "title": "Statue of Thomas Jefferson (Columbia University)",
+      "body": "An outdoor sculpture of Thomas Jefferson by William Ordway Partridge is installed outside the School of Journalism on the Columbia University campus in Manhattan, New York, United States. It was modeled in plaster in 1901 and cast in bronze in 1914 by the New York–based foundry Roman Bronze Works.",
+      "pitch": 0,
+      "yaw": 33.64718100488341,
+      "source": "https://en.wikipedia.org/wiki/Statue_of_Thomas_Jefferson_(Columbia_University)"
+    },
+    {
+      "id": "wiki-Columbia University Graduate School of Journalism",
+      "kind": "history",
+      "title": "Columbia University Graduate School of Journalism",
+      "body": "The Columbia University Graduate School of Journalism is the journalism school of Columbia University, located in the Morningside Heights neighborhood of Manhattan, New York City, United States.    \nAdmissions to the school are highly selective; traditionally drawing upon an international student body. Alumni have gone...",
+      "pitch": 0,
+      "yaw": 47.553584459494004,
+      "source": "https://en.wikipedia.org/wiki/Columbia_University_Graduate_School_of_Journalism"
+    }
+  ]
 }
