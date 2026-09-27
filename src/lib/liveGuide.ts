@@ -5,6 +5,7 @@
 
 import type { GuideResponse } from '@/app/api/guide/route'
 import type { GuideScene } from '@/src/lib/guide'
+import { beginGuideAudioSession } from '@/src/lib/guideAudioSession'
 
 export type GuideStatus = 'connecting' | 'live' | 'closed' | 'error'
 
@@ -38,9 +39,11 @@ export class LiveGuide {
   private caption = ''
   private started = false
   private closed = false
+  private releaseAudioSession: (() => void) | null = null
 
   // Create inside a tap: iOS only lets audio play that was started by one.
   constructor(private callbacks: GuideCallbacks) {
+    this.releaseAudioSession = beginGuideAudioSession()
     this.audio = new Audio()
     this.audio.autoplay = true
     this.audio.setAttribute('playsinline', '')
@@ -147,6 +150,9 @@ export class LiveGuide {
     this.pc?.close()
     this.mic?.getTracks().forEach((t) => t.stop())
     this.audio.srcObject = null
+    this.audio.pause()
+    this.releaseAudioSession?.()
+    this.releaseAudioSession = null
     this.pc = null
     this.events = null
     this.mic = null
