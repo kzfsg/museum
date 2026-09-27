@@ -27,12 +27,15 @@ export interface History {
 }
 
 const ARTICLE_RADIUS_M = 400
-const MAX_ARTICLES = 5
+const MAX_ARTICLES = 8
 export const BUILDING_RADIUS_M = 120
 // Lot centroids closer than this are "the building you're standing at", whose
 // bearing is too unstable to place.
 const MIN_BUILDING_DISTANCE_M = 12
 const MAX_BUILDING_TIDBITS = 2
+// Every generation should leave the user this many things to explore; see
+// src/lib/moreTidbits.ts for how the rest is made up when this is short.
+export const MIN_TIDBITS = 7
 const FETCH_TIMEOUT_MS = 6000
 // Wikimedia's API policy requires contact info in the User-Agent and rejects
 // generic agents, especially from cloud IPs like Vercel's.
@@ -120,7 +123,7 @@ function titleCase(s: string): string {
 
 // Tidbits sit at their real compass direction (panorama yaw == bearing).
 // Building tidbits only use buildings already standing in `year`, since the
-// others aren't in the picture. Markers that would overlap are stacked upwards.
+// others aren't in the picture; more than two only when articles are scarce.
 export function historyTidbits(history: History, year: number): Tidbit[] {
   const fromArticles: Tidbit[] = history.articles.map((a) => ({
     id: `wiki-${a.title}`,
@@ -133,7 +136,8 @@ export function historyTidbits(history: History, year: number): Tidbit[] {
   }))
   const oldest = history.buildings
     .filter((b) => b.yearBuilt <= year)
-    .sort((a, b) => a.yearBuilt - b.yearBuilt).slice(0, MAX_BUILDING_TIDBITS)
+    .sort((a, b) => a.yearBuilt - b.yearBuilt)
+    .slice(0, Math.max(MAX_BUILDING_TIDBITS, MIN_TIDBITS - fromArticles.length))
   const fromBuildings: Tidbit[] = oldest.map((b) => ({
     id: `bldg-${b.address}`,
     kind: 'local',
@@ -144,11 +148,16 @@ export function historyTidbits(history: History, year: number): Tidbit[] {
     source: 'NYC Department of City Planning, PLUTO',
   }))
 
-  const tidbits = [...fromArticles, ...fromBuildings].sort((a, b) => a.yaw - b.yaw)
-  for (let i = 1; i < tidbits.length; i++) {
-    if (Math.abs(tidbits[i].yaw - tidbits[i - 1].yaw) < 10) tidbits[i].pitch = tidbits[i - 1].pitch + 8
+  return stackOverlaps([...fromArticles, ...fromBuildings])
+}
+
+// Markers that would overlap are stacked upwards.
+export function stackOverlaps(tidbits: Tidbit[]): Tidbit[] {
+  const sorted = tidbits.map((t) => ({ ...t, pitch: 0 })).sort((a, b) => a.yaw - b.yaw)
+  for (let i = 1; i < sorted.length; i++) {
+    if (Math.abs(sorted[i].yaw - sorted[i - 1].yaw) < 10) sorted[i].pitch = sorted[i - 1].pitch + 8
   }
-  return tidbits
+  return sorted
 }
 
 async function fetchWikipedia(lat: number, lng: number): Promise<NearbyArticle[]> {

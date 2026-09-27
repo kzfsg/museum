@@ -89,7 +89,7 @@ describe('historyTidbits', () => {
     ],
   }
 
-  it('turns articles and the two oldest buildings into tidbits at their bearing', () => {
+  it('turns articles and old buildings into tidbits at their bearing', () => {
     const tidbits = historyTidbits(history, 1920)
     expect(tidbits.map((t) => t.title)).toEqual(['South Thing', 'Standing since 1880', 'Standing since 1870'])
     expect(tidbits[0].yaw).toBe(-160) // bearing 200 in Pannellum's [-180, 180)
@@ -105,5 +105,16 @@ describe('historyTidbits', () => {
   it('skips buildings that did not exist yet in the chosen year', () => {
     const titles = historyTidbits(history, 1875).map((t) => t.title)
     expect(titles).toEqual(['South Thing', 'Standing since 1870'])
+  })
+
+  it('uses only the two oldest buildings when there are plenty of articles', () => {
+    const articles = Array.from({ length: 6 }, (_, i) => ({ ...history.articles[0], title: `A${i}`, bearing: i * 50 }))
+    const tidbits = historyTidbits({ ...history, articles }, 1920)
+    expect(tidbits.filter((t) => t.kind === 'local').map((t) => t.title)).toEqual(['Standing since 1880', 'Standing since 1870'])
+  })
+
+  it('uses more buildings when articles are scarce', () => {
+    const buildings = Array.from({ length: 8 }, (_, i) => ({ address: `${i} ST`, yearBuilt: 1850 + i, distanceM: 50, bearing: i * 40 }))
+    expect(historyTidbits({ articles: history.articles, buildings }, 1920)).toHaveLength(7)
   })
 })
