@@ -63,6 +63,8 @@ interface ScanReviewProps {
   frames: CapturedFrame[]
   // Null when location was denied or unavailable; the scan then isn't saved.
   location: ScanLocation | null
+  // Tries again for a location; generating needs one, since tidbits come from it.
+  onLocate?: () => Promise<ScanLocation | null>
   onResult: (result: ScanResult) => void
   // Called with the error too, so a failure is reported even if the user has
   // left to browse nearby scans while it was developing.
@@ -78,6 +80,7 @@ interface ScanReviewProps {
 export function ScanReview({
   frames,
   location,
+  onLocate,
   onResult,
   onFailure,
   nearby = [],
@@ -117,6 +120,12 @@ export function ScanReview({
   async function generate() {
     setBusy(true)
     setError(null)
+    const here = location ?? (await onLocate?.()) ?? null
+    if (!here) {
+      setError('couldn’t find your location, and the history tidbits come from it. allow location for this site (or turn on location services) and try again.')
+      setBusy(false)
+      return
+    }
     try {
       const squashed = await canvasToBlob(stitchEquirect(frames, lens.hfov, MODEL_SIZE.width, MODEL_SIZE.height))
       const form = new FormData()
@@ -133,11 +142,9 @@ export function ScanReview({
           userAgent: navigator.userAgent,
         })
       )
-      if (location) {
-        form.set('lat', String(location.lat))
-        form.set('lng', String(location.lng))
-        if (location.accuracy) form.set('accuracy', String(location.accuracy))
-      }
+      form.set('lat', String(here.lat))
+      form.set('lng', String(here.lng))
+      if (here.accuracy) form.set('accuracy', String(here.accuracy))
       const res = await fetch('/api/generate', { method: 'POST', body: form })
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: `the request failed (${res.status}). try again in a moment.` }))
@@ -183,7 +190,7 @@ export function ScanReview({
           <span className={styles.metaMain}>
             {frames.length} photos · lens {Math.round(lens.hfov)}°{lens.measured ? '' : ' (est.)'}
           </span>
-          <span className={styles.metaSub}>{location ? 'location found, will be saved' : 'no location, history and saving off'}</span>
+          <span className={styles.metaSub}>{location ? 'location found, will be saved' : 'no location yet, will ask again before generating'}</span>
         </div>
       </header>
 

@@ -86,6 +86,19 @@ export default function Home() {
       .catch(() => {})
   }
 
+  // Asked again before generating if the first lookup failed: tidbits need a
+  // location, so a scan can't be generated without one.
+  async function locate(): Promise<ScanLocation | null> {
+    try {
+      const { coords } = await getPosition(8000, true)
+      const here = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }
+      setLocation(here)
+      return here
+    } catch {
+      return null
+    }
+  }
+
   const finishCapture = useCallback((captured: CapturedFrame[]) => {
     setFrames(captured)
     setMode('review')
@@ -117,6 +130,7 @@ export default function Home() {
       <ScanReview
         frames={frames}
         location={location}
+        onLocate={locate}
         onResult={(scan) => {
           if (browsingRef.current) setBackground({ status: 'ready', year: scan.year, result: scan })
           else openPlace(placeFromScan(scan, location))

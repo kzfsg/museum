@@ -26,7 +26,9 @@ export function bearingToImageFraction(bearing: number): number {
   return (((0.5 + bearing / 360) % 1) + 1) % 1
 }
 
-export function getPosition(timeoutMs = 8000): Promise<GeolocationPosition> {
+// `coarse` accepts a recent cached or Wi-Fi/cell fix, which works indoors
+// where precise GPS often never answers.
+export function getPosition(timeoutMs = 8000, coarse = false): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error('Location is not available in this browser'))
@@ -44,7 +46,7 @@ export function getPosition(timeoutMs = 8000): Promise<GeolocationPosition> {
         clearTimeout(timer)
         reject(err)
       },
-      { enableHighAccuracy: true, timeout: timeoutMs }
+      coarse ? { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 5 * 60_000 } : { enableHighAccuracy: true, timeout: timeoutMs }
     )
   })
 }
