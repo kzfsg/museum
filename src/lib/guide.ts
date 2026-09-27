@@ -13,7 +13,7 @@ export interface GuideScene {
   year: number
   note?: string | null
   placeholder?: boolean
-  tidbits: Pick<Tidbit, 'title' | 'body' | 'yaw' | 'source'>[]
+  tidbits: Pick<Tidbit, 'title' | 'body' | 'yaw' | 'source' | 'narration' | 'narrationProvider'>[]
 }
 
 // Keeps the startup instructions well inside the model's limits.
@@ -43,6 +43,8 @@ export function sceneFromPlace(place: Place): GuideScene {
       body: t.body.slice(0, MAX_BODY_CHARS),
       yaw: t.yaw,
       source: t.source,
+      narration: t.narration,
+      narrationProvider: t.narrationProvider,
     })),
   }
 }

@@ -134,7 +134,11 @@ export function Explore({
       vOffset={place.vOffset}
       hfov={resume?.hfov ?? place.viewHfov}
       hotspots={place.tidbits.map((t) => ({ id: t.id, pitch: t.pitch, yaw: t.yaw, label: t.title }))}
-      onHotspotClick={setOpenTidbitId}
+      onHotspotClick={(id) => {
+        setOpenTidbitId(id)
+        const tidbit = place.tidbits.find(t => t.id === id)
+        if (tidbit && guideOn) guide.narrate(tidbit.title)
+      }}
       motion={motion}
       yawOffset={yawOffset}
       onMotionMode={(mode) => {
@@ -237,6 +241,7 @@ export function Explore({
             </button>
           </p>
         )}
+        {guideOn && guide.provider && <p className={styles.hint} role="status">{guide.provider === 'elevenlabs' ? 'audio tour · ElevenLabs' : 'live conversation · OpenAI'}</p>}
         {guideOn && guide.caption && (
           <p className={`${styles.hint} ${styles.caption}`} aria-live="polite">
             {guide.caption}
@@ -280,7 +285,7 @@ export function Explore({
           >
             <Headphones size={17} strokeWidth={1.75} aria-hidden="true" />
           </button>
-          {guide.status === 'live' && (
+          {guide.status === 'live' && guide.provider === 'openai' && (
             <button
               onClick={guide.toggleMute}
               aria-pressed={guide.muted}
@@ -384,6 +389,11 @@ export function Explore({
                   </button>
                 </div>
                 <p className={styles.tidbitBody}>{openTidbit.body}</p>
+                {guideOn && (
+                  <button className={styles.pill} onClick={() => guide.narrate(openTidbit.title)}>
+                    <Headphones size={17} aria-hidden="true" /> listen to this story
+                  </button>
+                )}
                 <p className={styles.tidbitMeta}>
                   <span>{openTidbit.kind === 'local' ? 'local' : 'history'}</span>
                   {openTidbit.source && (

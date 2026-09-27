@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import type { Place } from '@/src/data/places'
 import { describeView, newViewTracker, sceneFromPlace, summarizeView, viewUpdate } from '@/src/lib/guide'
-import { LiveGuide, type GuideStatus } from '@/src/lib/liveGuide'
+import { type GuideStatus } from '@/src/lib/liveGuide'
+import { NarratedGuide, type GuideProvider } from '@/src/lib/narratedGuide'
 import { angleDiff } from '@/src/lib/motion'
 import type { ViewHandle } from '@/src/lib/viewSync'
 
@@ -21,6 +22,8 @@ function captionTail(text: string): string {
 }
 
 export interface TourGuide {
+  provider: GuideProvider | null
+  narrate: (title: string) => void
   status: GuideStatus | 'off'
   error: string | null
   caption: string
@@ -36,12 +39,14 @@ export function useTourGuide(place: Place, viewer: RefObject<ViewHandle | null>)
   const [error, setError] = useState<string | null>(null)
   const [caption, setCaption] = useState('')
   const [muted, setMuted] = useState(false)
-  const guide = useRef<LiveGuide | null>(null)
+  const [provider, setProvider] = useState<GuideProvider | null>(null)
+  const guide = useRef<NarratedGuide | null>(null)
 
   const stop = useCallback(() => {
     guide.current?.close()
     guide.current = null
     setStatus('off')
+    setProvider(null)
     setCaption('')
     setMuted(false)
   }, [])
@@ -50,11 +55,13 @@ export function useTourGuide(place: Place, viewer: RefObject<ViewHandle | null>)
     if (guide.current) return stop()
     setError(null)
     const scene = sceneFromPlace(place)
-    const g = new LiveGuide({
+    const g: NarratedGuide = new NarratedGuide({
       onStatus: (s, message) => {
         if (guide.current !== g) return
         if (s === 'error') {
+          g.close()
           guide.current = null
+          setProvider(null)
           setError(message ?? 'The guide stopped')
           setStatus('off')
           return
@@ -67,7 +74,7 @@ export function useTourGuide(place: Place, viewer: RefObject<ViewHandle | null>)
         }
       },
       onCaption: (text) => guide.current === g && setCaption(captionTail(text)),
-    })
+    }, (next) => guide.current === g && setProvider(next))
     guide.current = g
     void g.start(scene)
   }, [place, viewer, stop])
@@ -104,5 +111,9 @@ export function useTourGuide(place: Place, viewer: RefObject<ViewHandle | null>)
   // Hang up when leaving the place or the screen.
   useEffect(() => stop, [place, stop])
 
-  return { status, error, caption, muted, toggle, toggleMute }
+  const narrate = useCallback((title: string) => {
+    guide.current?.tell(`Right in front of them: ${title}. Briefly describe this hotspot.`, true)
+  }, [])
+
+  return { status, error, caption, muted, toggle, toggleMute, provider, narrate }
 }
