@@ -1,18 +1,22 @@
 import type { Metadata, Viewport } from 'next'
-import { Brygada_1918, Hanken_Grotesk } from 'next/font/google'
+// Self-hosted (Fontsource packages of the Google Fonts) so builds don't depend
+// on downloading them from Google, which sometimes fails a deploy.
+import localFont from 'next/font/local'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const brygada = Brygada_1918({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
+const brygada = localFont({
+  src: [
+    { path: '../node_modules/@fontsource-variable/brygada-1918/files/brygada-1918-latin-wght-normal.woff2', weight: '400 700', style: 'normal' },
+  ],
   variable: '--font-brygada',
   display: 'swap',
 })
 
-const hanken = Hanken_Grotesk({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+const hanken = localFont({
+  src: [
+    { path: '../node_modules/@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2', weight: '100 900', style: 'normal' },
+  ],
   variable: '--font-hanken',
   display: 'swap',
 })
