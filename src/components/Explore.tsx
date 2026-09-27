@@ -75,8 +75,16 @@ export function Explore({
   const splitShown = split && Boolean(place.present)
   const guide = useTourGuide(place, thenViewer)
   const guideOn = guide.status !== 'off'
-  const sound = useSoundscape(place, guideOn)
+  const sound = useSoundscape(place)
   const soundOn = sound.status !== 'off'
+  // Say what you're hearing for a few seconds once it starts.
+  const [soundCaptionShown, setSoundCaptionShown] = useState(false)
+  useEffect(() => {
+    if (sound.status !== 'on') return
+    setSoundCaptionShown(true)
+    const t = setTimeout(() => setSoundCaptionShown(false), 6000)
+    return () => clearTimeout(t)
+  }, [sound.status, place])
 
   // Keep the two panes looking the same way. Only the top pane follows the
   // phone; the bottom one copies it (and either can be dragged).
@@ -246,9 +254,10 @@ export function Explore({
           </p>
         )}
         {guide.error && <p className={styles.hint}>{guide.error}</p>}
-        {soundOn && !guideOn && sound.caption && (
+        {sound.status === 'waiting' && <p className={styles.hint}>tap anywhere to hear {place.year}</p>}
+        {sound.status === 'on' && soundCaptionShown && sound.caption && (
           <p className={styles.hint} aria-live="polite">
-            {sound.status === 'loading' ? 'tuning in to' : 'you’re hearing'} {sound.caption}
+            you’re hearing {sound.caption}
           </p>
         )}
         {splitShown && !splitHintSeen && (

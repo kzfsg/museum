@@ -13,24 +13,27 @@ export interface Layer {
   to: number
   // Only for indoor scenes (true), only outdoor (false), or either (undefined).
   indoor?: boolean
+  // Accents: seconds between plays, and how long each play lasts.
+  every?: [number, number]
+  seconds?: number
 }
 
 export const LAYERS = {
   'hooves': { label: 'hooves on the street', kind: 'bed', from: 1640, to: 1925, indoor: false },
-  'wagon': { label: 'a horse-drawn wagon', kind: 'accent', from: 1680, to: 1925, indoor: false },
+  'wagon': { label: 'a horse-drawn wagon', kind: 'accent', from: 1680, to: 1925, indoor: false, every: [20, 50], seconds: 16 },
   'street-1920s': { label: 'a busy early-motor street', kind: 'bed', from: 1915, to: 1955, indoor: false },
-  'trolley': { label: 'a trolley passing', kind: 'accent', from: 1890, to: 1956, indoor: false },
-  'old-car': { label: 'an early automobile', kind: 'accent', from: 1905, to: 1965, indoor: false },
-  'elevated-train': { label: 'an elevated train overhead', kind: 'accent', from: 1868, to: 2000, indoor: false },
-  'steam-train': { label: 'a distant steam train', kind: 'accent', from: 1832, to: 1950, indoor: false },
+  'trolley': { label: 'a trolley passing', kind: 'accent', from: 1890, to: 1956, indoor: false, every: [30, 80], seconds: 18 },
+  'old-car': { label: 'an early automobile', kind: 'accent', from: 1905, to: 1965, indoor: false, every: [20, 60], seconds: 14 },
+  'elevated-train': { label: 'an elevated train overhead', kind: 'accent', from: 1868, to: 2000, indoor: false, every: [60, 150], seconds: 20 },
+  'steam-train': { label: 'a distant steam train', kind: 'accent', from: 1832, to: 1950, indoor: false, every: [90, 200], seconds: 20 },
   'traffic-modern': { label: 'modern traffic', kind: 'bed', from: 1960, to: 2000, indoor: false },
   'crowd': { label: 'a crowd talking', kind: 'bed', from: 1600, to: 2000 },
   'birds': { label: 'birdsong', kind: 'bed', from: 1600, to: 2000, indoor: false },
   'wind-grass': { label: 'wind through the grass', kind: 'bed', from: 1600, to: 2000, indoor: false },
   'harbor': { label: 'the harbor and gulls', kind: 'bed', from: 1600, to: 2000, indoor: false },
-  'ship-horn': { label: 'a ship’s horn', kind: 'accent', from: 1840, to: 2000, indoor: false },
-  'church-bell': { label: 'a church bell', kind: 'accent', from: 1640, to: 2000 },
-  'construction': { label: 'hammering', kind: 'accent', from: 1600, to: 2000 },
+  'ship-horn': { label: 'a ship’s horn', kind: 'accent', from: 1840, to: 2000, indoor: false, every: [70, 180], seconds: 8 },
+  'church-bell': { label: 'a church bell', kind: 'accent', from: 1640, to: 2000, every: [120, 300], seconds: 10 },
+  'construction': { label: 'hammering', kind: 'accent', from: 1600, to: 2000, every: [25, 70], seconds: 10 },
   'farm': { label: 'chickens and a rooster', kind: 'bed', from: 1600, to: 1900, indoor: false },
   'stream': { label: 'a running stream', kind: 'bed', from: 1600, to: 1860, indoor: false },
   'room-tone': { label: 'a quiet room', kind: 'bed', from: 1600, to: 2000, indoor: true },

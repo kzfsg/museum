@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Splash } from '@/src/components/Splash'
 import { PlacePicker } from '@/src/components/PlacePicker'
 import { Explore } from '@/src/components/Explore'
@@ -10,6 +10,7 @@ import { places, type Place } from '@/src/data/places'
 import { timesSquareDemo } from '@/src/data/timesSquareDemo'
 import { getPosition, locationProblem } from '@/src/lib/geo'
 import { requestMotionPermission } from '@/src/lib/motion'
+import { unlockAudioOnFirstTap } from '@/src/lib/audio'
 import type { CapturedFrame } from '@/src/lib/stitch'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 
@@ -55,6 +56,9 @@ function placeFromSaved(scan: ScanWithUrl): Place {
 
 export default function Home() {
   const [mode, setMode] = useState<AppMode>('splash')
+  // The first tap anywhere (usually "travel back in time") unlocks audio, so
+  // each scene's sounds can start as soon as it opens.
+  useEffect(unlockAudioOnFirstTap, [])
   const [place, setPlace] = useState<Place | null>(null)
   const [frames, setFrames] = useState<CapturedFrame[]>([])
   const [location, setLocation] = useState<ScanLocation | null>(null)

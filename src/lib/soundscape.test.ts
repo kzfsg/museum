@@ -82,3 +82,16 @@ describe('the library', () => {
     for (const id of LAYER_IDS) expect(existsSync(`public/sounds/${id}.mp3`), id).toBe(true)
   })
 })
+
+describe('accent timing', () => {
+  it('gives every accent a realistic interval and length, and bells are rare', () => {
+    for (const id of LAYER_IDS) {
+      const l: import('./soundscape').Layer = LAYERS[id]
+      if (l.kind !== 'accent') continue
+      expect(l.every, id).toBeDefined()
+      expect(l.every![0], id).toBeLessThan(l.every![1])
+      expect(l.seconds, id).toBeGreaterThan(0)
+    }
+    expect((LAYERS['church-bell'] as import('./soundscape').Layer).every![0]).toBeGreaterThanOrEqual(120)
+  })
+})
