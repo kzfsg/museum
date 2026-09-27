@@ -1,16 +1,17 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, CircleAlert, MapPin } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, CircleAlert, Images, MapPin } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import { canvasToBlob, frameVfov, scanHfov, stitchBand, stitchEquirect, type CapturedFrame } from '@/src/lib/stitch'
 import { fitHfov } from '@/src/components/PanoramaViewer'
 import { SCAN_SLOTS } from '@/src/lib/captureGuide'
-import type { Tidbit } from '@/src/data/places'
+import type { Place, Tidbit } from '@/src/data/places'
 import type { GenerateResponse } from '@/app/api/generate/route'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 import { ScanListSheet } from '@/src/components/ScanListSheet'
+import { SamplesSheet } from '@/src/components/SamplesSheet'
 import { useAutoMotion } from '@/src/lib/useAutoMotion'
 
 const PanoramaViewer = dynamic(
@@ -73,6 +74,7 @@ interface ScanReviewProps {
   // Saved scans nearby, to look around while the new one develops.
   nearby?: ScanWithUrl[]
   onBrowseNearby?: (scan: ScanWithUrl, year: number) => void
+  onBrowseSample?: (place: Place, year: number) => void
   onRetake: () => void
   // Follow the phone's motion from the start (permission already granted).
   autoMotion?: boolean
@@ -86,11 +88,13 @@ export function ScanReview({
   onFailure,
   nearby = [],
   onBrowseNearby,
+  onBrowseSample,
   onRetake,
   autoMotion = false,
 }: ScanReviewProps) {
   const [motion] = useAutoMotion(autoMotion)
   const [nearbyOpen, setNearbyOpen] = useState(false)
+  const [samplesOpen, setSamplesOpen] = useState(false)
   const [preview, setPreview] = useState<{ url: string; vaov: number; vOffset: number } | null>(null)
   const [year, setYear] = useState(DEFAULT_YEAR)
   const [busy, setBusy] = useState(false)
@@ -128,8 +132,10 @@ export function ScanReview({
         here = await onLocate()
       } catch (e) {
         // Tidbits come from the location, so there's no generating without one.
-        setError(e instanceof Error ? e.message : 'couldn’t find your location.')
+        const message = e instanceof Error ? e.message : 'couldn’t find your location.'
+        setError(message)
         setBusy(false)
+        onFailure?.(message)
         return
       }
     }
@@ -232,6 +238,12 @@ export function ScanReview({
               <p>developing {year}…</p>
               <small>this can take a minute</small>
               <div className={styles.progress} aria-hidden="true" />
+              {onBrowseSample && (
+                <button onClick={() => setSamplesOpen(true)} className={`${styles.pill} ${styles.nearbyButton}`}>
+                  <Images size={16} strokeWidth={1.75} aria-hidden="true" />
+                  samples
+                </button>
+              )}
               {nearby.length > 0 && onBrowseNearby && (
                 <button onClick={() => setNearbyOpen(true)} className={`${styles.pill} ${styles.nearbyButton}`}>
                   <MapPin size={16} strokeWidth={1.75} aria-hidden="true" />
@@ -291,6 +303,9 @@ export function ScanReview({
           onPick={(scan) => onBrowseNearby(scan, year)}
           onClose={() => setNearbyOpen(false)}
         />
+      )}
+      {busy && onBrowseSample && (
+        <SamplesSheet open={samplesOpen} onOpenChange={setSamplesOpen} onPick={(place) => onBrowseSample(place, year)} />
       )}
     </main>
   )

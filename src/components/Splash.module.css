@@ -57,7 +57,7 @@
 }
 @media (max-width: 1023px) { .hero { --u: 1.5vw; } }
 @media (max-width: 639px) { .hero { --u: 2.2vw; } }
-.action { position: relative; z-index: 2; margin-top: 15px; }
+.action { position: relative; z-index: 2; margin-top: 15px; display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 0 20px; }
 .button {
   display: inline-flex;
   align-items: center;
@@ -76,6 +76,8 @@
 .button:hover { background: #41443b; transform: translateY(-2px); }
 .button:active { transform: translateY(0); }
 .button:focus-visible { outline: 2px solid #42644c; outline-offset: 5px; }
+.secondary { background: transparent; color: var(--hero-ink); border-color: #696b63; }
+.secondary:hover { background: #efefe8; }
 .subtitle {
   position: relative;
   z-index: 2;

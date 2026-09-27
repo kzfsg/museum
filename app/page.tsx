@@ -8,6 +8,7 @@ import { Capture } from '@/src/components/Capture'
 import { ScanReview, type Background, type ScanLocation, type ScanResult } from '@/src/components/ScanReview'
 import { places, type Place } from '@/src/data/places'
 import { timesSquareDemo } from '@/src/data/timesSquareDemo'
+import { quickDemo } from '@/src/data/samples'
 import { getPosition, locationProblem } from '@/src/lib/geo'
 import { requestMotionPermission } from '@/src/lib/motion'
 import type { CapturedFrame } from '@/src/lib/stitch'
@@ -124,6 +125,7 @@ export default function Home() {
         onCancel={() => setMode('splash')}
         here={location}
         onPickScan={(scan) => openPlace(placeFromSaved(scan))}
+        onPickSample={openPlace}
       />
     )
   }
@@ -142,6 +144,11 @@ export default function Home() {
           if (browsingRef.current) setBackground((b) => ({ status: 'failed', year: b?.year ?? 0, message }))
         }}
         nearby={nearbyScans}
+        onBrowseSample={(sample, year) => {
+          browsingRef.current = true
+          setBackground({ status: 'developing', year })
+          openPlace(sample)
+        }}
         onBrowseNearby={(scan, year) => {
           browsingRef.current = true
           setBackground({ status: 'developing', year })
@@ -174,7 +181,9 @@ export default function Home() {
         // Keyed so hopping to another scan starts with fresh view state.
         key={place.id}
         place={place}
-        onBack={() => setMode(fromScan || place.id === timesSquareDemo.id ? 'splash' : 'pick')}
+        onBack={() => setMode(fromScan || place.id === timesSquareDemo.id || place.id === quickDemo.id || place.id.startsWith('sample-') ? 'splash' : 'pick')}
+        demo={place.id === quickDemo.id}
+        onStartScan={startScan}
         onPickScan={(scan) => openPlace(placeFromSaved(scan))}
         autoMotion={motionOk}
         background={background}
@@ -192,7 +201,10 @@ export default function Home() {
     )
   }
 
-  return <Splash onScan={startScan} onDemo={async () => {
+  return <Splash onScan={startScan} onQuickDemo={() => {
+        setMotionOk(false)
+        openPlace(quickDemo)
+      }} onDemo={async () => {
         await askForMotion()
         openPlace(timesSquareDemo)
       }} />

@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Check, Compass, Map as MapIcon, X } from 'lucide-react'
+import { Compass, Images, Map as MapIcon, X } from 'lucide-react'
+import { SamplesSheet } from './SamplesSheet'
+import type { Place } from '@/src/data/places'
 import { TimeMachineIcon } from './TimeMachineIcon'
 import styles from './chrome.module.css'
 import { angleDiff, circularMean, normalizeDeg, requestMotionPermission, watchOrientation, type Orientation } from '@/src/lib/motion'
@@ -25,14 +27,16 @@ interface CaptureProps {
   here?: { lat: number; lng: number } | null
   // Open a saved scan picked on the map.
   onPickScan: (scan: ScanWithUrl) => void
+  onPickSample: (place: Place) => void
 }
 
-export function Capture({ onDone, onCancel, here, onPickScan }: CaptureProps) {
+export function Capture({ onDone, onCancel, here, onPickScan, onPickSample }: CaptureProps) {
   // The map opens over the camera so the scan so far survives a look around.
   const [mapOpen, setMapOpen] = useState(false)
+  const [samplesOpen, setSamplesOpen] = useState(false)
   // Auto-capture is paused while the map covers the camera.
   const pausedRef = useRef(false)
-  pausedRef.current = mapOpen
+  pausedRef.current = mapOpen || samplesOpen
   const videoRef = useRef<HTMLVideoElement>(null)
   // When the camera started delivering frames (null until then).
   const cameraReadyAtRef = useRef<number | null>(null)
@@ -141,6 +145,7 @@ export function Capture({ onDone, onCancel, here, onPickScan }: CaptureProps) {
 
   // Rotates the gyro-placed frames so heading 0 is north.
   function finish() {
+    if (framesRef.current.size !== SLOT_COUNT) return
     const offset = circularMean(northOffsetsRef.current) ?? 0
     onDone([...framesRef.current.values()].map((f) => ({ ...f, heading: normalizeDeg(f.heading + offset) })))
   }
@@ -200,14 +205,15 @@ export function Capture({ onDone, onCancel, here, onPickScan }: CaptureProps) {
               <Compass size={18} strokeWidth={1.75} aria-hidden="true" />
             </button>
           )}
-          <button onClick={finish} disabled={count === 0} className={`${styles.pill} ${heading === null ? '' : styles.primary}`}>
-            done
-            <Check size={18} strokeWidth={1.75} aria-hidden="true" />
+          <button onClick={() => setSamplesOpen(true)} className={styles.pill}>
+            samples
+            <Images size={18} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
       </div>
 
       {mapOpen && <MapScreen here={here} onPick={onPickScan} onBack={() => setMapOpen(false)} />}
+      <SamplesSheet open={samplesOpen} onOpenChange={setSamplesOpen} onPick={onPickSample} />
     </main>
   )
 }

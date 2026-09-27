@@ -33,6 +33,9 @@ interface ExploreProps {
   background?: Background | null
   onOpenBackground?: () => void
   onDismissBackground?: () => void
+  onStartScan?: () => void
+  // A quick demo must be usable by dragging, without a permission prompt.
+  demo?: boolean
 }
 
 export function Explore({
@@ -43,6 +46,8 @@ export function Explore({
   background,
   onOpenBackground,
   onDismissBackground,
+  onStartScan,
+  demo = false,
 }: ExploreProps) {
   const [motion, setMotion, motionChecked] = useAutoMotion(autoMotion)
   // Motion is how you look around, so we keep asking until it's on. Only a
@@ -258,6 +263,12 @@ export function Explore({
             <output>{yawOffset}°</output>
           </label>
         )}
+        {demo && onStartScan && (
+            <button onClick={onStartScan} className={`${styles.pill} ${styles.ink}`}>
+              scan your surroundings
+              <Camera size={17} strokeWidth={1.75} aria-hidden="true" />
+            </button>
+        )}
         <div className={styles.row}>
           {motion && motionMode === 'compass' && (
             <button
@@ -321,12 +332,14 @@ export function Explore({
               onClick={() => setListOpen(true)}
               aria-label={`tidbits (${place.tidbits.length})`}
               title={`tidbits (${place.tidbits.length})`}
-              className={`${styles.pill} ${styles.round}`}
+              className={`${styles.pill} ${demo ? '' : styles.round}`}
             >
               <BookOpen size={17} strokeWidth={1.75} aria-hidden="true" />
-              <span className={styles.badge} aria-hidden="true">
-                {place.tidbits.length}
-              </span>
+              {demo ? `tidbits (${place.tidbits.length})` : (
+                <span className={styles.badge} aria-hidden="true">
+                  {place.tidbits.length}
+                </span>
+              )}
             </button>
           )}
           {scans && scans.length > 0 && !splitShown && (
@@ -343,7 +356,7 @@ export function Explore({
         </div>
       </footer>
 
-      {motionChecked && !motion && !noSensor && (
+      {!demo && motionChecked && !motion && !noSensor && (
         <div className={styles.scrim}>
           <section className={styles.sheet} role="dialog" aria-modal="true" aria-label="turn on motion">
             <div className={styles.stack}>

@@ -8,9 +8,10 @@ import styles from './Splash.module.css'
 interface SplashProps {
   onScan: () => void
   onDemo: () => void
+  onQuickDemo: () => void
 }
 
-export function Splash({ onScan, onDemo }: SplashProps) {
+export function Splash({ onScan, onDemo, onQuickDemo }: SplashProps) {
   return (
     <main className={styles.hero}>
       <button type="button" className={styles.wordmark} onClick={onDemo} aria-label="time machine — open Times Square demo" title="Explore the Times Square demo">
@@ -25,6 +26,9 @@ export function Splash({ onScan, onDemo }: SplashProps) {
       <div className={styles.action}>
         <button onClick={onScan} className={styles.button}>
           travel back in time <ArrowUpRight size={19} aria-hidden="true" />
+        </button>
+        <button onClick={onQuickDemo} className={`${styles.button} ${styles.secondary}`}>
+          quick demo <ArrowUpRight size={19} aria-hidden="true" />
         </button>
       </div>
       <p className={styles.subtitle}>
