@@ -50,3 +50,18 @@ export function getPosition(timeoutMs = 8000, coarse = false): Promise<Geolocati
     )
   })
 }
+
+// What to tell the user when getPosition fails. Once a site is denied, browsers
+// stop showing the prompt, so a denial needs directions to the setting.
+export function locationProblem(err: unknown, secure = true): string {
+  if (!secure) return 'location only works over https. open the https version of this page.'
+  const code = (err as { code?: number } | null)?.code
+  if (code === 1) {
+    return 'location is blocked for this site, so your phone won’t ask again. on iphone: tap aA in the address bar, then website settings, and set location to allow (and check settings → privacy → location services → safari websites). then try again.'
+  }
+  if (code === 2) return 'your phone couldn’t work out where you are. turn on location services (and wi-fi, which helps indoors) and try again.'
+  if (code === 3 || (err instanceof Error && err.message.startsWith('Timed out'))) {
+    return 'finding your location timed out. step near a window or outside and try again.'
+  }
+  return 'this browser can’t share your location. try safari or chrome.'
+}
