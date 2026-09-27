@@ -1,0 +1,33 @@
+.library {
+  position: absolute;
+  z-index: 1000;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  max-width: 880px;
+  margin: 0 auto;
+  border-radius: 28px;
+  background: #fafaf7;
+  color: #20211e;
+  padding: 20px;
+  box-shadow: 0 12px 32px -12px rgb(32 33 30 / 30%);
+}
+.heading h1 { font-size: 26px; font-weight: 500; letter-spacing: -0.035em; line-height: 1.15; }
+.heading p { margin: 8px 0 0; font-size: 13px; color: #696b63; }
+.heading button { margin-top: 12px; }
+.photos { display: flex; gap: 12px; overflow-x: auto; margin: 16px 0 0; padding: 4px 4px 8px; scrollbar-color: #696b63 #efefe8; }
+.photos li { flex: 0 0 190px; list-style: none; }
+.photo { display: block; width: 100%; text-align: left; cursor: pointer; border-radius: 12px; overflow: hidden; background: #efefe8; transition: background 160ms ease; }
+.photo:hover { background: #d6dfcf; }
+.photo:focus-visible { outline: 2px solid #42644c; outline-offset: 2px; }
+.photo img { width: 100%; height: 90px; object-fit: cover; }
+.photo span { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; }
+.photo strong { font-size: 16px; font-weight: 500; }
+.photo small { font-size: 12px; color: #696b63; }
+@media (max-width: 600px) {
+  .library { padding: 16px; left: 12px; right: 12px; }
+  .heading h1 { font-size: 24px; }
+  .photos li { flex-basis: 156px; }
+  .photo img { height: 76px; }
+}
+@media (prefers-reduced-motion: reduce) { .photo { transition: none; } }

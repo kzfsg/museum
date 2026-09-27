@@ -1,6 +1,7 @@
 'use client'
 
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, Map } from 'lucide-react'
+import Link from 'next/link'
 import { TimeMachineIcon } from './TimeMachineIcon'
 import { ImageArc } from './ImageArc'
 import styles from './Splash.module.css'
@@ -26,6 +27,7 @@ export function Splash({ onScan, onDemo }: SplashProps) {
         <button onClick={onScan} className={styles.button}>
           travel back in time <ArrowUpRight size={19} aria-hidden="true" />
         </button>
+        <Link href="/map" className={styles.mapLink}><Map size={16} aria-hidden="true" /> explore saved panoramas</Link>
       </div>
       <p className={styles.subtitle}>
         <span>scan your surroundings in new york city, and step into a simulation of how it looked like decades ago.</span>

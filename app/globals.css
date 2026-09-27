@@ -531,6 +531,11 @@
   pointer-events: none;
 }
 /* You: a small ink ring. */
+.scan-photo { padding: 4px; background: #fafaf7; color: #20211e; border-radius: 12px; box-shadow: 0 8px 20px -8px rgb(32 33 30 / 55%); cursor: pointer; }
+.scan-map .scan-photo img { width: 80px; height: 42px; object-fit: cover; border-radius: 8px; }
+.scan-photo span { display: block; text-align: center; font: 500 12px/20px var(--font-hanken), sans-serif; }
+.scan-photo:hover { outline: 2px solid #20211e; }
+.scan-photo:focus-visible { outline: 2px solid #42644c; outline-offset: 3px; }
 .scan-here span {
   display: block;
   width: 20px;
