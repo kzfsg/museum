@@ -64,7 +64,8 @@ interface ScanReviewProps {
   // Null when location was denied or unavailable; the scan then isn't saved.
   location: ScanLocation | null
   // Tries again for a location; generating needs one, since tidbits come from it.
-  onLocate?: () => Promise<ScanLocation | null>
+  // Rejects with a message saying why the location couldn't be found.
+  onLocate?: () => Promise<ScanLocation>
   onResult: (result: ScanResult) => void
   // Called with the error too, so a failure is reported even if the user has
   // left to browse nearby scans while it was developing.
@@ -120,11 +121,17 @@ export function ScanReview({
   async function generate() {
     setBusy(true)
     setError(null)
-    const here = location ?? (await onLocate?.()) ?? null
+    let here = location
     if (!here) {
-      setError('couldn’t find your location, and the history tidbits come from it. allow location for this site (or turn on location services) and try again.')
-      setBusy(false)
-      return
+      try {
+        if (!onLocate) throw new Error('couldn’t find your location.')
+        here = await onLocate()
+      } catch (e) {
+        // Tidbits come from the location, so there's no generating without one.
+        setError(e instanceof Error ? e.message : 'couldn’t find your location.')
+        setBusy(false)
+        return
+      }
     }
     try {
       const squashed = await canvasToBlob(stitchEquirect(frames, lens.hfov, MODEL_SIZE.width, MODEL_SIZE.height))

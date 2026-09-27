@@ -8,7 +8,7 @@ import { Capture } from '@/src/components/Capture'
 import { ScanReview, type Background, type ScanLocation, type ScanResult } from '@/src/components/ScanReview'
 import { places, type Place } from '@/src/data/places'
 import { timesSquareDemo } from '@/src/data/timesSquareDemo'
-import { getPosition } from '@/src/lib/geo'
+import { getPosition, locationProblem } from '@/src/lib/geo'
 import { requestMotionPermission } from '@/src/lib/motion'
 import type { CapturedFrame } from '@/src/lib/stitch'
 import type { ScanWithUrl } from '@/app/api/scans/route'
@@ -67,16 +67,18 @@ export default function Home() {
   const browsingRef = useRef(false)
 
   async function startScan() {
-    // Must run inside the tap for iOS to show the motion permission prompt.
+    // Both are asked for in the tap itself, before anything is awaited, so the
+    // browser shows its prompts.
+    const position = getPosition()
     setMotionOk(await requestMotionPermission())
     setLocation(null)
     setNearbyScans([])
     setBackground(null)
     browsingRef.current = false
     setMode('capture')
-    // Location is looked up while the user scans; it's optional. Nearby saved
+    // Location is looked up while the user scans (generating needs it). Nearby saved
     // scans are fetched with it, to browse while a new scan develops.
-    getPosition()
+    position
       .then(async ({ coords }) => {
         const here = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }
         setLocation(here)
@@ -88,14 +90,15 @@ export default function Home() {
 
   // Asked again before generating if the first lookup failed: tidbits need a
   // location, so a scan can't be generated without one.
-  async function locate(): Promise<ScanLocation | null> {
+  // Rejects with a message saying why, and how to fix it.
+  async function locate(): Promise<ScanLocation> {
     try {
       const { coords } = await getPosition(8000, true)
       const here = { lat: coords.latitude, lng: coords.longitude, accuracy: coords.accuracy }
       setLocation(here)
       return here
-    } catch {
-      return null
+    } catch (e) {
+      throw new Error(locationProblem(e, window.isSecureContext))
     }
   }
 
