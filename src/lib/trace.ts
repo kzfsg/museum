@@ -37,6 +37,9 @@ export interface Trace {
   note: string | null
   prompt: string
   model: string
+  imageProvider?: 'gemini' | 'openai'
+  imageAttempts?: import('./imagePipeline').ImageAttempt[]
+  research?: import('./researchPlan').ResearchResult
   timingsMs: Record<string, number>
   outcome:
     | { status: 'ok'; openaiRequestId: string | null; outputBytes: number; savedScanId: string | null }

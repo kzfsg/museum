@@ -85,6 +85,8 @@ export default function TracePage() {
               : 'The scan image was sent to the model to be repainted.'}
           </Block>
           <Block title="Building the scan was taken in">{JSON.stringify(trace.building ?? null, null, 2)}</Block>
+          <Block title="Image provider attempts">{JSON.stringify(trace.imageAttempts ?? [], null, 2)}</Block>
+          <Block title="Research and narration plan">{JSON.stringify(trace.research ?? null, null, 2)}</Block>
           <Block title="Outcome">{JSON.stringify(trace.outcome, null, 2)}</Block>
           <Block title="Timings (ms)">{JSON.stringify(trace.timingsMs, null, 2)}</Block>
           <Block title={`Prompt (model: ${trace.model})`}>{trace.prompt}</Block>

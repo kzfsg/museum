@@ -1,10 +1,14 @@
 // Turns a rough present-day panorama into the same place in a past year using
-// OpenAI's image edit endpoint, grounded in what's known about the location.
+// Gemini with the existing OpenAI image endpoint as fallback, grounded in what's known about the location.
 // Saves the result when the scan has a location and storage is configured, and
 // records a trace of every step (see src/lib/trace.ts and /trace).
 
 import { findBuilding } from '@/src/lib/building'
-import { fetchHistory, historyTidbits, type History } from '@/src/lib/history'
+import { fetchHistory, historyTidbits } from '@/src/lib/history'
+import { topUpTidbits } from '@/src/lib/moreTidbits'
+import { geminiKey } from '@/src/lib/gemini'
+import { planResearch, researchedPrompt, withNarrations } from '@/src/lib/researchPlan'
+import { generateHistoricalImage, ImagePipelineError } from '@/src/lib/imagePipeline'
 import { buildPrompt, buildSitePrompt, siteNote } from '@/src/lib/prompt'
 import { saveScan, scanImageUrl, scanStoreEnabled, type SavedScan } from '@/src/lib/scanStore'
 import {
@@ -29,6 +33,7 @@ export interface GenerateResponse {
   tidbits: Tidbit[]
   saved: SavedScan | null
   traceId: string
+  generation: NonNullable<SavedScan['generation']>
   // Set in site mode, e.g. "This building opened in 1999. Here's the site in 1920."
   note: string | null
 }
@@ -41,8 +46,8 @@ function optionalNumber(value: FormDataEntryValue | null): number | null {
 
 export async function POST(req: Request) {
   const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) {
-    return Response.json({ error: 'OPENAI_API_KEY is not set on the server.' }, { status: 501 })
+  if (!apiKey && (!geminiKey() || process.env.AI_PIPELINE === 'legacy')) {
+    return Response.json({ error: 'Configure GEMINI_API_KEY or OPENAI_API_KEY on the server.' }, { status: 501 })
   }
 
   const form = await req.formData()
@@ -55,8 +60,11 @@ export async function POST(req: Request) {
   if (!(image instanceof Blob)) {
     return Response.json({ error: 'Missing image.' }, { status: 400 })
   }
+  if (image.size > 15 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(image.type)) {
+    return Response.json({ error: 'Use a JPEG, PNG or WebP scan under 15 MB.' }, { status: 400 })
+  }
   // Tidbits come from the location, and a scan without them isn't worth making.
-  if (lat === null || lng === null) {
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
     return Response.json({ error: 'Missing location. Allow location access and try again.' }, { status: 400 })
   }
   if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
@@ -119,42 +127,53 @@ export async function POST(req: Request) {
   trace.mode = note && building ? 'site' : 'follow'
   trace.prompt = note && building ? buildSitePrompt(year, history, building) : buildPrompt(year, history)
 
-  t = Date.now()
-  const res =
-    trace.mode === 'site'
-      ? await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ model, prompt: trace.prompt, size: '1536x1024', output_format: 'jpeg' }),
-        })
-      : await fetch('https://api.openai.com/v1/images/edits', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: editRequest(model, image, trace.prompt),
-        })
-  timingsMs.openai = Date.now() - t
-  const openaiRequestId = res.headers.get('x-request-id')
-  if (!res.ok) {
-    const detail = (await res.text()).slice(0, 500)
-    trace.outcome = { status: 'error', stage: 'openai', message: `${res.status}: ${detail}`, openaiRequestId }
-    return finish(Response.json({ error: `Image API returned ${res.status}: ${detail}` }, { status: 502 }))
-  }
+  // Made while the image generates; never rejects.
+  const tidbitsStarted = Date.now()
+  const tidbitsReady = topUpTidbits(
+    history ? historyTidbits(history, year) : [],
+    year,
+    { lat, lng, nearby: history?.articles.map((a) => a.title) ?? [] },
+    apiKey || ''
+  ).then((tidbits) => {
+    timingsMs.tidbits = Date.now() - tidbitsStarted
+    return tidbits
+  })
 
-  const json = (await res.json()) as { data?: { b64_json?: string }[] }
-  const b64 = json.data?.[0]?.b64_json
-  if (!b64) {
-    trace.outcome = { status: 'error', stage: 'openai', message: 'no image in response', openaiRequestId }
-    return finish(Response.json({ error: 'Image API returned no image.' }, { status: 502 }))
+  const basePrompt = trace.prompt
+  const researchStarted = Date.now()
+  const research = await planResearch(year, history, historyTidbits(history, year), trace.mode)
+  timingsMs.research = Date.now() - researchStarted
+  trace.research = research
+  let generated
+  try {
+    generated = await generateHistoricalImage({ image, mode: trace.mode, prompt: researchedPrompt(basePrompt, research.plan), fallbackPrompt: basePrompt })
+  } catch (error) {
+    trace.imageAttempts = error instanceof ImagePipelineError ? error.attempts : []
+    trace.outcome = { status: 'error', stage: 'image', message: 'All configured image providers failed' }
+    return finish(Response.json({ error: 'Image generation is unavailable. Please try again.', traceId }, { status: 502 }))
   }
-
-  const tidbits = history ? historyTidbits(history, year) : []
-  const bytes = Buffer.from(b64, 'base64')
+  trace.prompt = generated.prompt
+  trace.model = generated.model
+  trace.imageProvider = generated.provider
+  trace.imageAttempts = generated.attempts
+  const openaiRequestId = generated.attempts.find(a => a.provider === 'openai')?.requestId ?? null
+  const tidbits = withNarrations(await tidbitsReady, research)
+  const bytes = generated.bytes
+  const b64 = Buffer.from(bytes).toString('base64')
+  const generation = {
+    imageProvider: generated.provider,
+    imageModel: generated.model,
+    researchProvider: research.provider,
+    researchModel: research.status === 'ok' ? research.model : undefined,
+    fallback: generated.attempts.some(a => a.status === 'error'),
+    traceId,
+  }
 
   t = Date.now()
   let saved: SavedScan | null = null
   if (hasLocation && scanStoreEnabled()) {
     try {
-      saved = await saveScan(new Blob([bytes], { type: 'image/jpeg' }), { lat, lng, year, startYaw, tidbits, note }, image)
+      saved = await saveScan(new Blob([bytes], { type: 'image/jpeg' }), { lat, lng, year, startYaw, tidbits, note, generation }, image)
     } catch (e) {
       // The user still gets their image; it just won't be reusable.
       console.error('Failed to save scan', e)
@@ -172,17 +191,8 @@ export async function POST(req: Request) {
     tidbits,
     saved,
     traceId,
+    generation,
     note,
   }
   return finish(Response.json(response))
-}
-
-function editRequest(model: string, image: Blob, prompt: string): FormData {
-  const body = new FormData()
-  body.set('model', model)
-  body.set('image', image, 'scan.jpg')
-  body.set('prompt', prompt)
-  body.set('size', '1536x1024')
-  body.set('output_format', 'jpeg')
-  return body
 }
