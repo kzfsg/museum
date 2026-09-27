@@ -45,6 +45,11 @@ Env: `OPENAI_API_KEY` (image generation; optional `OPENAI_IMAGE_MODEL`), `BLOB_R
   (key stays there; lookups are delegated to a text model with web search), `src/lib/liveGuide.ts`
   is the browser connection, `src/lib/guide.ts` builds the instructions and describes the view in
   words (GPT-Live takes no images), `src/components/useTourGuide.ts` feeds it the viewer's yaw.
+- Sounds of the past: `app/api/soundscape/route.ts` has a vision model (optional `OPENAI_SOUND_MODEL`)
+  pick layers from the CC0 recordings in `public/sounds` (credits in `CREDITS.md`); the year and
+  indoor/outdoor rules in `src/lib/soundscape.ts` are enforced on its pick, with an era mix as fallback.
+  `src/lib/soundscapePlayer.ts` mixes them with Web Audio on one shared AudioContext (`src/lib/audio.ts`)
+  that the first tap unlocks, so each scene's sound starts as soon as it opens, independent of the guide.
 - `src/data/places.ts` — sample spots; `placeholder: true` panoramas are not the actual place.
 - TypeScript errors are ignored by `next build`; run `pnpm exec tsc --noEmit` to check.
 

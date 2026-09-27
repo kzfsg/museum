@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowUpRight, BookOpen, Camera, ChevronRight, Compass, Headphones, History, Map as MapIcon, Mic, MicOff, Rows2, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, BookOpen, Camera, ChevronRight, Compass, Headphones, History, Map as MapIcon, Mic, MicOff, Rows2, SlidersHorizontal, Volume2, VolumeX, X } from 'lucide-react'
 import styles from './chrome.module.css'
 import dynamic from 'next/dynamic'
 import type { Place } from '@/src/data/places'
@@ -12,6 +12,7 @@ import { readView, syncViews, type View } from '@/src/lib/viewSync'
 import { ScanMapView, useSavedScans } from '@/src/components/ScanMap'
 import { useTourGuide } from '@/src/components/useTourGuide'
 import { LiveCamera } from '@/src/components/LiveCamera'
+import { useSoundscape } from '@/src/components/useSoundscape'
 import type { ScanWithUrl } from '@/app/api/scans/route'
 import type { Background } from '@/src/components/ScanReview'
 
@@ -79,6 +80,16 @@ export function Explore({
   const splitShown = split && Boolean(place.present)
   const guide = useTourGuide(place, thenViewer)
   const guideOn = guide.status !== 'off'
+  const sound = useSoundscape(place)
+  const soundOn = sound.status !== 'off'
+  // Say what you're hearing for a few seconds once it starts.
+  const [soundCaptionShown, setSoundCaptionShown] = useState(false)
+  useEffect(() => {
+    if (sound.status !== 'on') return
+    setSoundCaptionShown(true)
+    const t = setTimeout(() => setSoundCaptionShown(false), 6000)
+    return () => clearTimeout(t)
+  }, [sound.status, place])
 
   // Keep the two panes looking the same way. Only the top pane follows the
   // phone; the bottom one copies it (and either can be dragged).
@@ -248,6 +259,12 @@ export function Explore({
           </p>
         )}
         {guide.error && <p className={styles.hint}>{guide.error}</p>}
+        {sound.status === 'waiting' && <p className={styles.hint}>tap anywhere to hear {place.year}</p>}
+        {sound.status === 'on' && soundCaptionShown && sound.caption && (
+          <p className={styles.hint} aria-live="polite">
+            you’re hearing {sound.caption}
+          </p>
+        )}
         {splitShown && !splitHintSeen && (
           <p className={styles.hint}>
             the past is on top, today below. tap <Rows2 size={13} strokeWidth={1.75} aria-label="compare" className="inline align-[-2px]" /> to see the past full screen
@@ -290,6 +307,16 @@ export function Explore({
             className={`${styles.pill} ${styles.round} ${guideOn ? styles.ink : ''}`}
           >
             <Headphones size={17} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <button
+            onClick={sound.toggle}
+            aria-pressed={soundOn}
+            aria-busy={sound.status === 'loading'}
+            aria-label={soundOn ? 'turn off the sounds of the past' : `hear ${place.year}`}
+            title={soundOn ? 'turn off the sounds of the past' : `hear ${place.year}`}
+            className={`${styles.pill} ${styles.round} ${soundOn ? styles.ink : ''}`}
+          >
+            {soundOn ? <Volume2 size={17} strokeWidth={1.75} aria-hidden="true" /> : <VolumeX size={17} strokeWidth={1.75} aria-hidden="true" />}
           </button>
           {guide.status === 'live' && (
             <button
