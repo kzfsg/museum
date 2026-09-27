@@ -55,6 +55,10 @@ export async function POST(req: Request) {
   if (!(image instanceof Blob)) {
     return Response.json({ error: 'Missing image.' }, { status: 400 })
   }
+  // Tidbits come from the location, and a scan without them isn't worth making.
+  if (lat === null || lng === null) {
+    return Response.json({ error: 'Missing location. Allow location access and try again.' }, { status: 400 })
+  }
   if (!Number.isInteger(year) || year < MIN_YEAR || year > MAX_YEAR) {
     return Response.json({ error: `Year must be between ${MIN_YEAR} and ${MAX_YEAR}.` }, { status: 400 })
   }
@@ -101,6 +105,11 @@ export async function POST(req: Request) {
   timingsMs.history = Date.now() - t
   trace.history = history
   trace.building = building
+  // Checked before the (slow, paid) image generation, not after.
+  if (!history || historyTidbits(history, year).length === 0) {
+    trace.outcome = { status: 'error', stage: 'history', message: 'no tidbits found' }
+    return finish(Response.json({ error: 'Couldn’t find any history around here, so there’s nothing to pin. Try again in a moment.' }, { status: 502 }))
+  }
 
   // Site mode: the building the scan was taken in didn't exist yet, so show
   // the site instead of repainting the scan (which would invent a room that
