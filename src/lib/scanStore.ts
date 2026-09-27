@@ -6,6 +6,7 @@
 import { get, list, put } from '@vercel/blob'
 import type { Tidbit } from '@/src/data/places'
 import { haversineKm } from '@/src/lib/geo'
+import { indexScan, mongoEnabled } from './mongoScans'
 
 export interface SavedScan {
   id: string
@@ -20,6 +21,14 @@ export interface SavedScan {
   tidbits: Tidbit[]
   // Shown when the scan's building didn't exist yet in `year` (site mode).
   note?: string | null
+  generation?: {
+    imageProvider: 'gemini' | 'openai'
+    imageModel: string
+    researchProvider: 'gemini' | 'deterministic'
+    researchModel?: string
+    fallback: boolean
+    traceId: string
+  }
   createdAt: string
 }
 
@@ -83,12 +92,29 @@ export async function saveScan(
   ])
   const scan: SavedScan = { id, imagePath, presentPath, createdAt: new Date().toISOString(), ...meta }
   await put(scanPathname(scan, 'json'), JSON.stringify(scan), { access: 'private', contentType: 'application/json' })
+  if (mongoEnabled()) {
+    try {
+      await indexScan(scan)
+    } catch {
+      // The Blob copy is durable. The idempotent import command can repair the index.
+      console.warn('Scan saved to Blob; MongoDB indexing failed. Run pnpm scans:import to retry.')
+    }
+  }
   return scan
 }
 
 export async function listScanIndex(): Promise<ScanIndexEntry[]> {
-  const { blobs } = await list({ prefix: PREFIX, limit: 1000 })
-  return blobs.map((b) => parseScanPathname(b.pathname)).filter((e): e is ScanIndexEntry => e !== null)
+  const entries: ScanIndexEntry[] = []
+  let cursor: string | undefined
+  do {
+    const page = await list({ prefix: PREFIX, limit: 1000, cursor })
+    for (const blob of page.blobs) {
+      const entry = parseScanPathname(blob.pathname)
+      if (entry) entries.push(entry)
+    }
+    cursor = page.hasMore ? page.cursor : undefined
+  } while (cursor)
+  return entries
 }
 
 export async function readScan(pathname: string): Promise<SavedScan | null> {
