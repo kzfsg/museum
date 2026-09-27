@@ -12,6 +12,8 @@ export interface Tidbit {
   pitch: number
   yaw: number
   source?: string
+  narration?: string
+  narrationProvider?: 'gemini'
 }
 
 export interface Place {
